@@ -17,6 +17,10 @@ import adminRoutes from './modules/admin/admin.routes';
 
 async function bootstrap() {
   const app = express();
+  
+  // 💡 Доверяем прокси Render для корректной работы express-rate-limit
+  app.set('trust proxy', 1);
+
   const server = http.createServer(app);
 
   // Security headers
