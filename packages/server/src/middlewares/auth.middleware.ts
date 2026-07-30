@@ -2,11 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../auth/jwt';
 
 /**
- * Express-мидлварь: проверяет Bearer JWT и добавляет `req.userId`.
- * Если токена нет / невалиден — отвечает 401.
+ * Расширяем стандартный Request, добавляя userId и сохраняя возможность передавать Params, ResBody, ReqBody, ReqQuery
  */
-
-export interface AuthedRequest extends Request {
+export interface AuthedRequest<
+  P = any,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = any
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   userId?: number;
 }
 
@@ -36,10 +39,6 @@ export function authMiddleware(req: AuthedRequest, res: Response, next: NextFunc
   next();
 }
 
-/**
- * Вариант мидлвари, который НЕ отклоняет запрос при отсутствии токена,
- * но заполняет req.userId если токен есть (для публичных эндпоинтов).
- */
 export function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (header?.startsWith('Bearer ')) {
