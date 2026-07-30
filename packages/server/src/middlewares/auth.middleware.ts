@@ -1,19 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../auth/jwt';
 
-/**
- * Расширяем стандартный Request, добавляя userId и сохраняя возможность передавать Params, ResBody, ReqBody, ReqQuery
- */
-export interface AuthedRequest<
-  P = any,
-  ResBody = any,
-  ReqBody = any,
-  ReqQuery = any
-> extends Request<P, ResBody, ReqBody, ReqQuery> {
-  userId?: number;
+// Глобально добавляем userId в стандартный Request Express
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
 }
 
-export function authMiddleware(req: AuthedRequest, res: Response, next: NextFunction): void {
+// Псевдоним для совместимости с импортами в роутах
+export type AuthedRequest = Request;
+
+export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     res.status(401).json({
@@ -39,7 +39,7 @@ export function authMiddleware(req: AuthedRequest, res: Response, next: NextFunc
   next();
 }
 
-export function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction): void {
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (header?.startsWith('Bearer ')) {
     const payload = verifyAccessToken(header.slice(7).trim());
