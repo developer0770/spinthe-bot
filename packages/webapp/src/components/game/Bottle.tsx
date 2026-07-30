@@ -18,8 +18,8 @@ export default function Bottle({ rotation = 0, onClick, isSpinning = false, size
     <motion.div
       onClick={onClick}
       className={`relative select-none ${onClick ? 'cursor-pointer' : ''}`}
-      style={{ width: size, height: size }}
-      animate={isSpinning ? undefined : { rotate: rotation }}
+      style={{ width: size, height: size, transformOrigin: 'center center' }}
+      animate={isSpinning ? { rotate: 360 } : { rotate: rotation }}
       transition={
         isSpinning
           ? { repeat: Infinity, duration: 0.4, ease: 'linear' }
