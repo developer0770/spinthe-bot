@@ -21,11 +21,11 @@ export function getSocket(): AppSocket {
     path: '/socket.io',
     transports: ['websocket', 'polling'],
     autoConnect: false,
-    auth: (cb) => {
+    auth: (cb: (data: object) => void) => {
       const token = getToken();
       cb({ token: token || '' });
     },
-  });
+  } as any);
   return socket;
 }
 

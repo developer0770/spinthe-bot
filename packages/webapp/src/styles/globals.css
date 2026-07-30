@@ -67,23 +67,17 @@
 
   /* ============ Деревянный фон стола ============ */
   .wood-bg {
-    background-color: #8b5a2b;
+    background-color: #ba8147;
     background-image:
+      linear-gradient(180deg, rgba(70,35,10,0.2) 0px, rgba(70,35,10,0.2) 2px, transparent 2px, transparent 60px),
       repeating-linear-gradient(
-        90deg,
-        rgba(0,0,0,0.08) 0px,
-        rgba(0,0,0,0.08) 2px,
-        transparent 2px,
-        transparent 60px
-      ),
-      repeating-linear-gradient(
-        180deg,
-        rgba(255,255,255,0.04) 0px,
-        rgba(255,255,255,0.04) 1px,
+        0deg,
+        rgba(255,255,255,0.05) 0px,
+        rgba(255,255,255,0.05) 1px,
         transparent 1px,
-        transparent 26px
+        transparent 18px
       ),
-      radial-gradient(ellipse at center, #a0693a 0%, #6b4423 100%);
+      radial-gradient(ellipse at center, #cb9257 0%, #a66a33 60%, #824f21 100%);
   }
 
   /* ============ Паттерн сплэша ============ */
