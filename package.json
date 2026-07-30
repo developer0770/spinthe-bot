@@ -1,0 +1,24 @@
+{
+  "name": "spinthe-bot",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/webapp"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,server -c green,blue \"npm run dev -w packages/webapp\" \"npm run dev -w packages/server\"",
+    "dev:web": "npm run dev -w packages/webapp",
+    "dev:server": "npm run dev -w packages/server",
+    "build": "npm run build -w packages/webapp && npm run build -w packages/server",
+    "build:web": "npm run build -w packages/webapp",
+    "build:server": "npm run build -w packages/server",
+    "prisma:generate": "npm run prisma:generate -w packages/server",
+    "prisma:migrate": "npm run prisma:migrate -w packages/server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.5.4"
+  }
+}

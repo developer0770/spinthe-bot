@@ -1,0 +1,551 @@
+// ============================================================
+// Prisma schema — Spin the Bottle (Целуй и Знакомься)
+// ============================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ====================== USERS ======================
+/// Профиль игрока. Создаётся при первой авторизации через Telegram.
+model User {
+  id              Int       @id @default(autoincrement())
+  /// Telegram user ID (BigInt потому что в TG id может быть > 2^31)
+  telegramId      BigInt    @unique
+  /// @username в Telegram (может отсутствовать или меняться)
+  username        String?
+  /// Отображаемое имя (first_name + last_name из TG либо введённое вручную)
+  name            String    @default("")
+  /// URL фото аватара (либо из Telegram, либо загруженное пользователем)
+  avatarUrl       String?
+  /// Дата рождения для расчёта возраста
+  birthDate       DateTime?
+  /// Пол (male/female)
+  gender          Gender?
+  /// Язык интерфейса (из Telegram)
+  languageCode    String    @default("ru")
+  isPremium       Boolean   @default(false)
+  /// VIP-статус
+  isVip           Boolean   @default(false)
+  vipUntil        DateTime?
+  /// Баланс сердечек ❤️
+  heartsBalance   Int       @default(0)
+  /// Монеты 🪙
+  coinsBalance    Int       @default(0)
+  /// Алмазы 💎 (премиум)
+  gemsBalance     Int       @default(0)
+  /// Опыт
+  xp              Int       @default(0)
+  /// Уровень
+  level           Int       @default(1)
+  /// Всего получено поцелуев 💋
+  totalKisses     BigInt    @default(0)
+  /// Роль: user | moderator | admin
+  role            String    @default("user")
+  /// Мут до даты (null — не замьючен)
+  mutedUntil      DateTime?
+  /// Бан
+  isBanned        Boolean   @default(false)
+  banReason       String?
+  /// Активный скин бутылочки
+  activeBottleId  String    @default("classic_green")
+  activeFrameId   String?
+  tutorialDone    Boolean   @default(false)
+  soundEnabled    Boolean   @default(true)
+  musicEnabled    Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  lastActiveAt    DateTime  @default(now())
+  lastDailyAt     DateTime?
+
+  // ===== Relations =====
+  tablePlayers    TablePlayer[]
+  hostedTables    Table[]        @relation("hostedTables")
+  spinsAsSpinner  Spin[]         @relation("spinner")
+  spinsAsTarget   Spin[]         @relation("target")
+  gameAsSpinner   Game[]         @relation("spinner")
+  gameAsTarget    Game[]         @relation("target")
+  messages        Message[]
+  giftsSent       GiftInstance[] @relation("giftSender")
+  giftsReceived   GiftInstance[] @relation("giftReceiver")
+  courtshipsSent  Courtship[]    @relation("courtFrom")
+  courtshipsRecv  Courtship[]    @relation("courtTo")
+  payments        Payment[]
+  ownedBottles    UserBottle[]
+  ownedFrames     UserFrame[]
+  ownedBoosters   UserBooster[]
+  activeBoosters  ActiveBooster[]
+  achievements    UserAchievement[]
+  eventClaims     UserEventClaim[]
+  referralsInviter Referral[]    @relation("inviter")
+  referralsInvitee Referral[]    @relation("invitee")
+  ratings         RatingSnapshot[]
+  reportsMade     Report[]       @relation("reporter")
+  reportsReceived Report[]       @relation("reported")
+  friendsOf       Friendship[]   @relation("userA")
+  friendsTo       Friendship[]   @relation("userB")
+  dmSent          DirectMessage[] @relation("dmSender")
+  dmReceived      DirectMessage[] @relation("dmReceiver")
+  notifications   Notification[]
+
+  @@index([telegramId])
+  @@index([totalKisses])
+}
+
+// ====================== FRIENDS ======================
+enum FriendStatus {
+  pending
+  accepted
+  blocked
+}
+
+/// Дружба между двумя пользователями (одна запись на пару).
+model Friendship {
+  id         Int          @id @default(autoincrement())
+  userAId    Int
+  userBId    Int
+  /// pending — заявка от userA к userB; accepted — друзья; blocked — userA заблокировал userB
+  status     FriendStatus @default(pending)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  userA      User         @relation("userA", fields: [userAId], references: [id])
+  userB      User         @relation("userB", fields: [userBId], references: [id])
+
+  @@unique([userAId, userBId])
+  @@index([userAId, status])
+  @@index([userBId, status])
+}
+
+// ====================== DIRECT MESSAGES ======================
+model DirectMessage {
+  id         Int      @id @default(autoincrement())
+  fromUserId Int
+  toUserId   Int
+  text       String
+  /// text | sticker | gift
+  type       String   @default("text")
+  stickerId  String?
+  giftId     String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  from       User     @relation("dmSender", fields: [fromUserId], references: [id])
+  to         User     @relation("dmReceiver", fields: [toUserId], references: [id])
+
+  @@index([fromUserId, createdAt(sort: Desc)])
+  @@index([toUserId, isRead, createdAt(sort: Desc)])
+}
+
+// ====================== NOTIFICATIONS ======================
+model Notification {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  /// friend_request | friend_accepted | gift_received | kiss | message | system
+  type       String
+  title      String
+  body       String?
+  payload    Json?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+}
+
+enum Gender {
+  male
+  female
+}
+
+// ====================== TABLES (Столы/Комнаты) ======================
+/// Статусы комнаты: waiting — лобби/ожидание игроков; playing — идёт игра; finished — игра закончена; closed — комната закрыта.
+enum TableStatus {
+  waiting
+  playing
+  finished
+  closed
+}
+
+/// Игровой стол (комната). В одном столе 4–12 игроков.
+model Table {
+  id          Int        @id @default(autoincrement())
+  /// Отображаемый номер (Стол 192 и т.п.)
+  tableNumber Int        @unique
+  /// Название комнаты (заданное создателем)
+  name        String     @default("")
+  /// 6-значный код для входа в приватные комнаты (для публичных тоже генерируется для приглашений)
+  roomCode    String     @unique
+  /// Приватная (только по коду) или публичная (видна в общем списке)
+  isPrivate   Boolean    @default(false)
+  /// ID владельца/хоста комнаты
+  hostId      Int
+  /// Максимум игроков (4/6/8/10/12)
+  maxPlayers  Int        @default(8)
+  /// Количество раундов в игре (3/5/10/15)
+  totalRounds Int        @default(5)
+  status      TableStatus @default(waiting)
+  /// Текущая активная игра (может быть null пока не стартовала и после финиша)
+  currentGameId String?
+  createdAt   DateTime   @default(now())
+  startedAt   DateTime?
+  closedAt    DateTime?
+
+  players     TablePlayer[]
+  games       Game[]
+  messages    Message[]
+  gifts       GiftInstance[]
+  host        User       @relation("hostedTables", fields: [hostId], references: [id])
+
+  @@index([status])
+  @@index([isPrivate, status])
+}
+
+/// Связка игрок + стол с позицией на круге (slot 0..maxPlayers-1)
+model TablePlayer {
+  id        Int      @id @default(autoincrement())
+  tableId   Int
+  userId    Int
+  slotIndex Int
+  /// active | left | kicked | disconnected
+  status    String   @default("active")
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([tableId, slotIndex])
+  @@unique([tableId, userId])
+  @@index([userId, status])
+}
+
+// ====================== GAMES ======================
+/// Конкретная игровая сессия (5 шагов/раундов)
+model Game {
+  id                String    @id @default(uuid())
+  tableId           Int
+  currentStep       Int       @default(0)
+  totalSteps        Int       @default(5)
+  currentSpinnerId  Int?
+  currentTargetId   Int?
+  /// waiting | spinning | choosing | chatting | finished
+  status            String    @default("waiting")
+  isTutorial        Boolean   @default(false)
+  startedAt         DateTime?
+  finishedAt        DateTime?
+
+  table             Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  currentSpinner    User?     @relation("spinner", fields: [currentSpinnerId], references: [id])
+  currentTarget     User?     @relation("target", fields: [currentTargetId], references: [id])
+  spins             Spin[]
+  messages          Message[]
+  giftInstances     GiftInstance[]
+
+  @@index([tableId, status])
+}
+
+/// Один бросок (вращение) внутри игры
+model Spin {
+  id          Int       @id @default(autoincrement())
+  gameId      String
+  step        Int
+  spinnerId   Int
+  targetId    Int
+  /// kiss | reject | null (ещё не выбрал)
+  choice      String?
+  /// Конечный угол поворота бутылочки в градусах
+  rotationDeg Float
+  createdAt   DateTime  @default(now())
+
+  game        Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  spinner     User      @relation("spinner", fields: [spinnerId], references: [id])
+  target      User      @relation("target", fields: [targetId], references: [id])
+
+  @@index([gameId])
+}
+
+// ====================== CHAT MESSAGES ======================
+model Message {
+  id          Int       @id @default(autoincrement())
+  tableId     Int
+  gameId      String?
+  senderId    Int?
+  text        String
+  /// user | system | courtship | gift | event
+  type        String    @default("user")
+  isLocked    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  table       Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  game        Game?     @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  sender      User?     @relation(fields: [senderId], references: [id])
+
+  @@index([tableId, createdAt(sort: Desc)])
+}
+
+// ====================== GIFTS ======================
+model GiftCatalog {
+  id           String         @id   // teddy_bear, cocktail, rose...
+  name         String
+  emoji        String
+  priceHearts  Int
+  isEvent      Boolean        @default(false)
+  eventId      String?
+  sortOrder    Int            @default(0)
+  isActive     Boolean        @default(true)
+
+  instances    GiftInstance[]
+}
+
+model GiftInstance {
+  id           Int        @id @default(autoincrement())
+  giftId       String
+  fromUserId   Int
+  toUserId     Int
+  tableId      Int?
+  gameId       String?
+  pricePaid    Int
+  createdAt    DateTime   @default(now())
+
+  gift         GiftCatalog @relation(fields: [giftId], references: [id])
+  fromUser     User       @relation("giftSender", fields: [fromUserId], references: [id])
+  toUser       User       @relation("giftReceiver", fields: [toUserId], references: [id])
+  table        Table?     @relation(fields: [tableId], references: [id])
+  game         Game?      @relation(fields: [gameId], references: [id])
+}
+
+// ====================== COURTSHIPS (Ухаживания за ❤️1) ======================
+model Courtship {
+  id           Int       @id @default(autoincrement())
+  fromUserId   Int
+  toUserId     Int
+  tableId      Int?
+  costHearts   Int       @default(1)
+  createdAt    DateTime  @default(now())
+
+  fromUser     User      @relation("courtFrom", fields: [fromUserId], references: [id])
+  toUser       User      @relation("courtTo", fields: [toUserId], references: [id])
+}
+
+// ====================== CUSTOMIZATION ======================
+model BottleCatalog {
+  id           String   @id   // classic_green, whiskey, cola...
+  name         String
+  imageUrl     String
+  priceHearts  Int?         // null = дефолтная/бесплатная
+  eventId      String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  userBottles  UserBottle[]
+}
+
+model UserBottle {
+  userId       Int
+  bottleId     String
+  acquiredAt   DateTime @default(now())
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bottle       BottleCatalog  @relation(fields: [bottleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, bottleId])
+}
+
+model FrameCatalog {
+  id           String   @id   // gothic, cards, moon...
+  name         String
+  imageUrl     String
+  priceHearts  Int?
+  locked       Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  userFrames   UserFrame[]
+}
+
+model UserFrame {
+  userId       Int
+  frameId      String
+  acquiredAt   DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frame        FrameCatalog  @relation(fields: [frameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, frameId])
+}
+
+// ====================== BOOSTERS ======================
+model BoosterCatalog {
+  id           String   @id   // fire_kiss, clap, star_x2, kiss_up
+  name         String
+  description  String
+  /// choice | league
+  category     String
+  imageUrl     String
+  priceHearts  Int?
+  sortOrder    Int      @default(0)
+
+  userBoosters UserBooster[]
+}
+
+model UserBooster {
+  userId       Int
+  boosterId    String
+  quantity     Int      @default(0)
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booster      BoosterCatalog  @relation(fields: [boosterId], references: [id], onDelete: Cascade)
+
+  @@id([userId, boosterId])
+}
+
+model ActiveBooster {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  boosterId   String
+  activatedAt DateTime @default(now())
+  expiresAt   DateTime?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ====================== ACHIEVEMENTS ======================
+model AchievementCatalog {
+  id           String   @id   // alien, ship, guitar...
+  name         String
+  description  String
+  imageUrl     String
+  starsTotal   Int      @default(5)
+  requirement  Json?
+  sortOrder    Int      @default(0)
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  userId        Int
+  achievementId String
+  starsEarned   Int      @default(0)
+  completedAt   DateTime?
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   AchievementCatalog @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+}
+
+// ====================== EVENTS ======================
+model Event {
+  id           String       @id   // bbq_season, football, kiss_day...
+  title        String
+  description  String
+  subtitle     String?
+  startsAt     DateTime?
+  endsAt       DateTime?
+  isActive     Boolean      @default(true)
+
+  rewards      EventReward[]
+  claims       UserEventClaim[]
+}
+
+model EventReward {
+  id           Int      @id @default(autoincrement())
+  eventId      String
+  /// gift | bottle | hearts | frame
+  rewardType   String
+  rewardId     String?
+  rewardAmount Int?
+  imageUrl     String?
+  name         String
+
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model UserEventClaim {
+  userId       Int
+  eventId      String
+  claimedAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+}
+
+// ====================== PAYMENTS (Telegram Stars ⭐) ======================
+model Payment {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  telegramChargeId    String?   @unique
+  starsAmount         Int
+  heartsAmount        Int
+  bonusHearts         Int       @default(0)
+  /// hearts_pack | vip
+  productType         String    @default("hearts_pack")
+  /// pending | completed | failed | refunded
+  status              String    @default("pending")
+  createdAt           DateTime  @default(now())
+  completedAt         DateTime?
+
+  user                User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+}
+
+// ====================== REFERRALS ======================
+model Referral {
+  id            Int      @id @default(autoincrement())
+  inviterId     Int
+  inviteeId     Int
+  rewardPaid    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  inviter       User     @relation("inviter", fields: [inviterId], references: [id])
+  invitee       User     @relation("invitee", fields: [inviteeId], references: [id])
+
+  @@unique([inviterId, inviteeId])
+}
+
+// ====================== RATINGS (снапшоты) ======================
+model RatingSnapshot {
+  id        Int       @id @default(autoincrement())
+  /// kisses | music | hearts | couples | smile
+  category  String
+  /// day | week | month | all_time
+  period    String
+  userId    Int
+  score     BigInt    @default(0)
+  rank      Int?
+  updatedAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([category, period, userId])
+  @@index([category, period, score(sort: Desc)])
+}
+
+// ====================== REPORTS (Жалобы) ======================
+model Report {
+  id          Int       @id @default(autoincrement())
+  reporterId  Int
+  reportedId  Int
+  /// reason: spam | abuse | cheating | other
+  reason      String
+  comment     String?
+  tableId     Int?
+  status      String    @default("pending") // pending | resolved | dismissed
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  Int?
+
+  reporter    User      @relation("reporter", fields: [reporterId], references: [id])
+  reported    User      @relation("reported", fields: [reportedId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([reportedId])
+}
