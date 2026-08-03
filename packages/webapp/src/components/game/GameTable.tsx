@@ -112,7 +112,7 @@ export default function GameTable({ onLeave }: Props) {
               ) : isMyTurn && gamePhase === 'awaiting_spin' ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-lime animate-pulse" />
-                  <span className="text-white font-semibold text-sm">Твой ход! 🍾</span>
+                  <span className="text-white font-semibold text-sm">Твой ход! Нажми на бутылочку 🍾</span>
                 </>
               ) : spinner ? (
                 <>
@@ -243,20 +243,37 @@ export default function GameTable({ onLeave }: Props) {
 
             {/* 3D Бутылочка */}
             <div
-              className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+              className="absolute -translate-x-1/2 -translate-y-1/2 z-10 select-none flex flex-col items-center justify-center"
               style={{ left: cx, top: cy }}
             >
-              <div style={{ filter: isSpinning ? 'drop-shadow(0 0 20px rgba(255,152,0,.6))' : 'drop-shadow(0 8px 20px rgba(0,0,0,.5))' }}>
+              <div
+                onClick={() => {
+                  if (canSpin) {
+                    hapticImpact('medium');
+                    spin();
+                  }
+                }}
+                className={canSpin ? 'cursor-pointer active:scale-95 transition' : ''}
+                style={{ filter: isSpinning ? 'drop-shadow(0 0 20px rgba(255,152,0,.6))' : 'drop-shadow(0 8px 20px rgba(0,0,0,.5))' }}
+              >
                 <Bottle3D
                   rotation={bottleRotation}
                   spinning={isSpinning}
                   size={250}
                   skinId={me?.activeBottleId}
                   onClick={() => {
-                    if (canSpin) spin();
+                    if (canSpin) {
+                      hapticImpact('medium');
+                      spin();
+                    }
                   }}
                 />
               </div>
+              {isMyTurn && canSpin && !isSpinning && (
+                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-lime text-bg-900 font-bold text-xs px-3 py-1 rounded-full shadow-glow animate-bounce pointer-events-none z-20">
+                  Нажми на бутылочку! 🍾
+                </div>
+              )}
             </div>
           </div>
         </div>

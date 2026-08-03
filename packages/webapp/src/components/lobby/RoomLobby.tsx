@@ -141,12 +141,22 @@ export default function RoomLobby({ onLeave, onStart }: Props) {
             />
             {/* Центральная бутылочка/логотип */}
             <div
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+              onClick={() => {
+                if (canStart && isHost) handleStart();
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center select-none ${
+                canStart && isHost ? 'cursor-pointer active:scale-95 transition' : ''
+              }`}
               style={{ left: cx, top: cy }}
             >
-              <div className="text-6xl mb-1 animate-bounce-arrow">🍾</div>
+              <div className={`text-6xl mb-1 ${canStart ? 'animate-bounce' : 'animate-bounce-arrow'}`}>🍾</div>
               <div className="text-white text-center font-bold text-lg shadow-text">Лобби</div>
               <div className="text-white/70 text-xs shadow-text">{table.totalRounds} раундов</div>
+              {canStart && (
+                <div className="mt-2 px-3 py-1 bg-lime text-bg-900 font-bold text-xs rounded-full shadow-glow animate-pulse whitespace-nowrap">
+                  {isHost ? 'Нажми на бутылочку, чтобы начать! 🍾' : 'Ждём, пока хост нажмёт 🍾'}
+                </div>
+              )}
             </div>
 
             {slots.map((p, i) => {
@@ -177,25 +187,13 @@ export default function RoomLobby({ onLeave, onStart }: Props) {
       {/* Чат и кнопка старта/готовности */}
       <div className="fixed bottom-14 left-0 right-0 z-30">
         <ChatPanel />
-        <div className="px-4 pb-3 pt-2 bg-gradient-to-t from-bg-900 to-transparent">
-          {isHost ? (
-            <button
-              onClick={handleStart}
-              disabled={!canStart || starting}
-              className={`w-full py-4 rounded-2xl text-lg font-bold transition active:scale-95 shadow-glow ${
-                canStart && !starting
-                  ? 'bg-lime text-bg-900'
-                  : 'bg-white/10 text-white/40'
-              }`}
-            >
-              {starting ? 'Начинаем…' : canStart ? '▶ Начать игру' : `Нужно минимум 2 игрока (${players.length}/2)`}
-            </button>
-          ) : (
-            <div className="w-full py-4 rounded-2xl bg-white/10 text-white/70 text-center font-semibold">
-              ⏳ Ждём, пока хост начнёт игру…
+        {!canStart && (
+          <div className="px-4 pb-3 pt-2 bg-gradient-to-t from-bg-900 to-transparent">
+            <div className="w-full py-4 rounded-2xl bg-white/10 text-white/40 text-center font-bold">
+              Нужно минимум 2 игрока ({players.length}/2)
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

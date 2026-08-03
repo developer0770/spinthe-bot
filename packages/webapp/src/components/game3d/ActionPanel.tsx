@@ -127,37 +127,6 @@ export default function ActionPanel({
           </motion.div>
         )}
 
-        {!isChoosing && !isCardShown && (
-          <motion.div
-            key="spin"
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 30, opacity: 0 }}
-            className="flex flex-col items-center gap-2"
-          >
-            {spinning ? (
-              <div className="w-full py-4 rounded-2xl bg-white/10 text-white/70 text-center text-lg font-bold">
-                🌀 Крутим…
-              </div>
-            ) : isMyTurn && canSpin ? (
-              <button
-                onClick={() => { hapticImpact('medium'); onSpin(); }}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-accent-orange to-red-500 text-white text-lg font-bold shadow-glow-orange active:scale-95 transition relative overflow-hidden"
-              >
-                <span className="relative z-10">🍾 Крутить бутылочку!</span>
-                <motion.span
-                  className="absolute inset-0 bg-white/10"
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-              </button>
-            ) : (
-              <div className="w-full py-4 rounded-2xl bg-white/10 text-white/70 text-center font-semibold">
-                ⏳ Ход другого игрока…
-              </div>
-            )}
-          </motion.div>
-        )}
       </AnimatePresence>
     </div>
   );
