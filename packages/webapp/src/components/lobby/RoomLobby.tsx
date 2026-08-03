@@ -149,14 +149,9 @@ export default function RoomLobby({ onLeave, onStart }: Props) {
               }`}
               style={{ left: cx, top: cy }}
             >
-              <div className={`text-6xl mb-1 ${canStart ? 'animate-bounce' : 'animate-bounce-arrow'}`}>🍾</div>
+              <div className="text-6xl mb-1 animate-bounce-arrow">🍾</div>
               <div className="text-white text-center font-bold text-lg shadow-text">Лобби</div>
               <div className="text-white/70 text-xs shadow-text">{table.totalRounds} раундов</div>
-              {canStart && (
-                <div className="mt-2 px-3 py-1 bg-lime text-bg-900 font-bold text-xs rounded-full shadow-glow animate-pulse whitespace-nowrap">
-                  {isHost ? 'Нажми на бутылочку, чтобы начать! 🍾' : 'Ждём, пока хост нажмёт 🍾'}
-                </div>
-              )}
             </div>
 
             {slots.map((p, i) => {
@@ -184,16 +179,9 @@ export default function RoomLobby({ onLeave, onStart }: Props) {
         </div>
       </div>
 
-      {/* Чат и кнопка старта/готовности */}
+      {/* Чат */}
       <div className="fixed bottom-14 left-0 right-0 z-30">
         <ChatPanel />
-        {!canStart && (
-          <div className="px-4 pb-3 pt-2 bg-gradient-to-t from-bg-900 to-transparent">
-            <div className="w-full py-4 rounded-2xl bg-white/10 text-white/40 text-center font-bold">
-              Нужно минимум 2 игрока ({players.length}/2)
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

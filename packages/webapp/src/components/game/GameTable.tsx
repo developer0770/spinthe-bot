@@ -109,11 +109,6 @@ export default function GameTable({ onLeave }: Props) {
                   <span className="w-2 h-2 rounded-full bg-accent-orange animate-pulse" />
                   <span className="text-white font-semibold text-sm">Бутылочка крутится… 🌀</span>
                 </>
-              ) : isMyTurn && gamePhase === 'awaiting_spin' ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-lime animate-pulse" />
-                  <span className="text-white font-semibold text-sm">Твой ход! Нажми на бутылочку 🍾</span>
-                </>
               ) : spinner ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-accent-pink animate-pulse" />
@@ -269,11 +264,6 @@ export default function GameTable({ onLeave }: Props) {
                   }}
                 />
               </div>
-              {isMyTurn && canSpin && !isSpinning && (
-                <div className="absolute top-[80%] left-1/2 -translate-x-1/2 whitespace-nowrap bg-lime text-bg-900 font-bold text-xs px-3 py-1 rounded-full shadow-glow animate-bounce pointer-events-none z-20">
-                  Нажми на бутылочку! 🍾
-                </div>
-              )}
             </div>
           </div>
         </div>
