@@ -9,6 +9,8 @@ import LeaderboardScreen from './LeaderboardScreen';
 import ProfileScreen from './ProfileScreen';
 import { useRouter } from '../store/routerStore';
 import { useRoomSocket } from '../hooks/useRoomSocket';
+import { fetchFramesShop } from '../api/shop';
+import { useEconomyStore } from '../store/economyStore';
 
 /**
  * Корневой лейаут игры с верхним и нижним барами и анимированным переключением вкладок.
@@ -18,6 +20,18 @@ export default function GameRoot() {
   const tab = useRouter((s) => s.tab);
   const setTab = useRouter((s) => s.setTab);
   const { joinByCode } = useRoomSocket();
+
+  // Загрузить каталог рамок при инициализации GameRoot (для всех авторизованных пользователей)
+  useEffect(() => {
+    fetchFramesShop()
+      .then((frames) => {
+        useEconomyStore.getState().setFrames(frames);
+      })
+      .catch(() => {
+        // Если ошибка при загрузке — это не критично, просто логируем
+        console.warn('Failed to load frames catalog');
+      });
+  }, []);
 
   useEffect(() => {
     // Применяем отложенный инвайт (из /startapp=room_XXX)

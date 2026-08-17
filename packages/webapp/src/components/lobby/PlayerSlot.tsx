@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { TablePlayerSlotDTO } from '@spinthe/shared';
+import { getFrameImageUrl } from '../../utils/frameUtils';
 
 interface Props {
   slot: TablePlayerSlotDTO | null;
@@ -55,9 +56,17 @@ export default function PlayerSlot({ slot, isMe, isHost, canKick, onKick, connSt
         ) : (
           initial
         )}
-        {/* Рамка VIP */}
+        {/* Рамка PNG */}
         {user.activeFrameId && (
-          <div className="absolute -inset-1 rounded-xl border-2 border-yellow-400 pointer-events-none" />
+          <img
+            src={getFrameImageUrl(user.activeFrameId) || ''}
+            alt="frame"
+            className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
+            style={{ objectFit: 'contain' }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
         )}
         {/* Корона хоста */}
         {isHost && (

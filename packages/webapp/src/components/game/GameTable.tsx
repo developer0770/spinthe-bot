@@ -12,6 +12,7 @@ import { useRoomStore } from '../../store/roomStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRoomSocket } from '../../hooks/useRoomSocket';
 import { useEconomyStore } from '../../store/economyStore';
+import { getFrameImageUrl } from '../../utils/frameUtils';
 
 interface Props {
   onLeave?: () => void;
@@ -203,6 +204,18 @@ export default function GameTable({ onLeave }: Props) {
                       />
                     ) : (
                       initial
+                    )}
+                    {/* Рамка PNG */}
+                    {p.user.activeFrameId && (
+                      <img
+                        src={getFrameImageUrl(p.user.activeFrameId) || ''}
+                        alt="frame"
+                        className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
+                        style={{ objectFit: 'contain' }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
                     )}
                     {p.isHost && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-lg">👑</div>

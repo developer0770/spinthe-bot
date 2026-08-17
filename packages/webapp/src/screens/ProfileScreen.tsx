@@ -4,6 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { useRouter } from '../store/routerStore';
 import { hapticSelect, hapticImpact } from '../utils/telegram';
 import { useSocialSocket } from '../hooks/useSocialSocket';
+import { getFrameImageUrl } from '../utils/frameUtils';
 import FriendsScreen from './FriendsScreen';
 import AdminScreen from './AdminScreen';
 import EditProfileScreen from './EditProfileScreen';
@@ -73,8 +74,20 @@ export default function ProfileScreen() {
         <div className="absolute inset-0 bg-gradient-to-br from-accent-pink/20 via-accent-purple/20 to-accent-blue/20" />
         <div className="relative z-10 flex flex-col items-center w-full">
           <div className="relative">
-            <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-accent-pink via-accent-purple to-accent-blue flex items-center justify-center text-4xl font-black shadow-lg ring-4 ring-white/20 overflow-hidden ${me?.activeFrameId ? 'ring-4 ring-lime' : ''}`}>
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-pink via-accent-purple to-accent-blue flex items-center justify-center text-4xl font-black shadow-lg ring-4 ring-white/20 overflow-hidden relative">
               {me?.avatarUrl ? <img src={me.avatarUrl} className="w-full h-full object-cover" alt="" /> : name[0]}
+              {/* Рамка PNG */}
+              {me?.activeFrameId && (
+                <img
+                  src={getFrameImageUrl(me.activeFrameId) || ''}
+                  alt="frame"
+                  className="absolute inset-0 w-full h-full rounded-full pointer-events-none"
+                  style={{ objectFit: 'contain' }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
             </div>
             {me?.isVip && <div className="absolute -top-1 -right-1 text-2xl animate-float">👑</div>}
           </div>
