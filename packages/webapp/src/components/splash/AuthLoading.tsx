@@ -29,7 +29,7 @@ export default function AuthLoading({ error }: { error?: string | null }) {
         <p className="text-white/80 text-lg">Подключение к игре…</p>
       )}
 
-      <p className="absolute bottom-6 text-gray-500 text-sm">@spinthe_bot</p>
+      <p className="absolute bottom-6 text-gray-500 text-sm">@super_spinthe_bot</p>
     </div>
   );
 }

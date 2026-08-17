@@ -4,8 +4,8 @@ import { pickRandomTruth, pickRandomDare } from '@spinthe/shared';
 import { addHearts } from '../users/users.service';
 
 export const SPIN_DURATION_MS = 3500;
-export const CHOICE_DURATION_MS = 15_000; // 15 сек на выбор "целовать/отказать"
-export const CARD_DURATION_MS = 45_000;   // 45 сек на правду/действие
+export const CHOICE_DURATION_MS = 8_000; // 8 сек на выбор "целовать/отказать"
+export const CARD_DURATION_MS = 10_000;   // 10 сек на правду/действие
 
 export type GamePhase =
   | 'awaiting_spin'

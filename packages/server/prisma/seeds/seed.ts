@@ -26,8 +26,8 @@ async function main() {
   // Рамки
   const frames = [
     { id: 'none', name: 'Без украшений', imageUrl: '', priceHearts: null, locked: false, sortOrder: 0 },
-    { id: 'plants', name: 'Растительная', imageUrl: '/frames/plants.png', priceHearts: null, locked: true, sortOrder: 1 },
-    { id: 'gothic', name: 'Готика с шипами', imageUrl: '/frames/gothic.png', priceHearts: 500, locked: false, sortOrder: 2 },
+    { id: 'fantasy', name: 'Фэнтези', imageUrl: '/frames/fantasy.png', priceHearts: null, locked: true, sortOrder: 1 },
+    { id: 'egypt', name: 'Египетская', imageUrl: '/frames/egypt.png', priceHearts: 500, locked: false, sortOrder: 2 },
     { id: 'casino', name: 'Казино', imageUrl: '/frames/casino.png', priceHearts: null, locked: true, sortOrder: 3 },
     { id: 'cards', name: 'Карты', imageUrl: '/frames/cards.png', priceHearts: 500, locked: false, sortOrder: 4 },
     { id: 'moon', name: 'Луна и звёзды', imageUrl: '/frames/moon.png', priceHearts: 500, locked: false, sortOrder: 5 },

@@ -40,7 +40,7 @@ export default function HelpScreen({ onClose }: { onClose: () => void }) {
             <p className="text-white/70 text-sm mt-2">{item.a}</p>
           </motion.details>
         ))}
-        <p className="text-white/30 text-xs text-center py-6">Обратись к @spinthe_bot в Telegram, если остались вопросы.</p>
+        <p className="text-white/30 text-xs text-center py-6">Обратись к @super_spinthe_bot в Telegram, если остались вопросы.</p>
       </div>
     </motion.div>
   );
