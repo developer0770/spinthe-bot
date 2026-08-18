@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { hapticSelect } from '../utils/telegram';
 import { useAuthStore } from '../store/authStore';
 import { useUserStore } from '../store/userStore';
+import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
 
 interface InventoryItem {
   bottles: Array<{ id: string; name: string; imageUrl: string; acquiredAt: string }>;
@@ -165,14 +166,27 @@ function BottleCard({ name, emoji, equipped, onEquip }: { id: string; name: stri
   );
 }
 
-function FrameCard({ name, emoji, equipped, onEquip }: { id: string | null; name: string; emoji: string; equipped: boolean; onEquip: () => void }) {
+function FrameCard({ id, name, emoji, equipped, onEquip }: { id: string | null; name: string; emoji: string; equipped: boolean; onEquip: () => void }) {
+  const imageUrl = getFrameImageUrl(id);
+
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onEquip}
       className={`glass rounded-2xl p-4 flex flex-col items-center gap-2 ${equipped ? 'ring-2 ring-lime' : ''}`}
     >
-      <div className="text-5xl">{emoji}</div>
+      <div className="w-14 h-14 relative flex items-center justify-center">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-contain pointer-events-none"
+            onError={handleFrameError}
+          />
+        ) : (
+          <div className="text-4xl">{emoji}</div>
+        )}
+      </div>
       <div className="text-white text-xs font-bold text-center">{name}</div>
       {equipped ? (
         <div className="text-lime text-[10px] font-bold">✓ Надето</div>

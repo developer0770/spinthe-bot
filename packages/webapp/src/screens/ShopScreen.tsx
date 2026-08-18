@@ -5,6 +5,7 @@ import { useUserStore } from '../store/userStore';
 import { useAuthStore } from '../store/authStore';
 import { useSocialStore } from '../store/socialStore';
 import { useRoomStore } from '../store/roomStore';
+import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
 import {
   fetchHeartPacks,
   fetchGifts,
@@ -366,7 +367,7 @@ export default function ShopScreen() {
               <SkinCard
                 key={f.id}
                 i={i}
-                emoji="🖼️"
+                imageUrl={f.imageUrl || getFrameImageUrl(f.id)}
                 name={f.name}
                 price={f.priceHearts}
                 owned={f.owned}
@@ -440,10 +441,11 @@ export default function ShopScreen() {
 }
 
 function SkinCard({
-  i, emoji, name, price, owned, isEquipped, buying, onBuy, onEquip,
+  i, emoji, imageUrl, name, price, owned, isEquipped, buying, onBuy, onEquip,
 }: {
   i: number;
-  emoji: string;
+  emoji?: string;
+  imageUrl?: string | null;
   name: string;
   price: number | null;
   owned: boolean;
@@ -459,7 +461,18 @@ function SkinCard({
       transition={{ delay: i * 0.04 }}
       className="glass rounded-2xl p-3 flex flex-col items-center"
     >
-      <div className={`text-5xl my-2 ${isEquipped ? 'animate-bounce-arrow' : ''}`}>{emoji}</div>
+      <div className={`w-16 h-16 relative flex items-center justify-center my-2 ${isEquipped ? 'animate-bounce-arrow' : ''}`}>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-contain pointer-events-none"
+            onError={handleFrameError}
+          />
+        ) : (
+          <div className="text-5xl">{emoji || '🖼️'}</div>
+        )}
+      </div>
       <div className="text-white text-xs font-bold text-center mb-1">{name}</div>
       {owned ? (
         <button

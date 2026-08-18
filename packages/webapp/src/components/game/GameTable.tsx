@@ -12,7 +12,7 @@ import { useRoomStore } from '../../store/roomStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRoomSocket } from '../../hooks/useRoomSocket';
 import { useEconomyStore } from '../../store/economyStore';
-import { getFrameImageUrl } from '../../utils/frameUtils';
+import { getFrameImageUrl, handleFrameError } from '../../utils/frameUtils';
 
 interface Props {
   onLeave?: () => void;
@@ -188,37 +188,36 @@ export default function GameTable({ onLeave }: Props) {
                       hapticImpact('light');
                       setActionsFor({ userId: p.userId, name: p.user.name, isMe: isMe });
                     }}
-                    className={`w-14 h-14 rounded-xl shadow-lg flex items-center justify-center text-xl font-bold text-white relative overflow-hidden cursor-pointer active:scale-95 ${
+                    className={`w-14 h-14 rounded-xl shadow-lg flex items-center justify-center text-xl font-bold text-white relative cursor-pointer active:scale-95 ${
                       isMe ? 'ring-2 ring-lime' : ''
                     } ${isSpinner ? 'ring-4 ring-accent-orange shadow-glow-orange' : ''} ${
                       isTarget ? 'ring-4 ring-pink-400 animate-pulse' : ''
                     }`}
                     style={{ backgroundColor: color }}
                   >
-                    {p.user.avatarUrl ? (
-                      <img
-                        src={p.user.avatarUrl}
-                        alt={p.user.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
-                      />
-                    ) : (
-                      initial
-                    )}
-                    {/* Рамка PNG */}
+                    <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center relative">
+                      {p.user.avatarUrl ? (
+                        <img
+                          src={p.user.avatarUrl}
+                          alt={p.user.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+                        />
+                      ) : (
+                        initial
+                      )}
+                    </div>
+                    {/* Рамка */}
                     {p.user.activeFrameId && (
                       <img
                         src={getFrameImageUrl(p.user.activeFrameId) || ''}
                         alt="frame"
-                        className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
-                        style={{ objectFit: 'contain' }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                        className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none z-10"
+                        onError={handleFrameError}
                       />
                     )}
                     {p.isHost && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-lg">👑</div>
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-lg z-20">👑</div>
                     )}
                     {playerConn[p.userId] === 'reconnecting' && (
                       <div className="absolute inset-0 bg-black/55 flex items-center justify-center rounded-xl">

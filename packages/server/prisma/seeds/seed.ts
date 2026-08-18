@@ -27,21 +27,27 @@ async function main() {
   const frames = [
     { id: 'none', name: 'Без украшений', imageUrl: '', priceHearts: null, locked: false, sortOrder: 0 },
     { id: 'fantasy', name: 'Фэнтези', imageUrl: '/frames/fantasy.png', priceHearts: null, locked: true, sortOrder: 1 },
-    { id: 'egypt', name: 'Египетская', imageUrl: '/frames/egypt.png', priceHearts: 500, locked: false, sortOrder: 2 },
-    { id: 'casino', name: 'Казино', imageUrl: '/frames/casino.png', priceHearts: null, locked: true, sortOrder: 3 },
-    { id: 'cards', name: 'Карты', imageUrl: '/frames/cards.png', priceHearts: 500, locked: false, sortOrder: 4 },
-    { id: 'moon', name: 'Луна и звёзды', imageUrl: '/frames/moon.png', priceHearts: 500, locked: false, sortOrder: 5 },
-    { id: 'rainbow', name: 'Облака и радуга', imageUrl: '/frames/rainbow.png', priceHearts: 500, locked: false, sortOrder: 6 },
-    { id: 'neon', name: 'Неоновая', imageUrl: '/frames/neon.png', priceHearts: 500, locked: false, sortOrder: 7 },
-    { id: 'chains', name: 'Цепи и огонь', imageUrl: '/frames/chains.png', priceHearts: 500, locked: false, sortOrder: 8 },
-    { id: 'candy', name: 'Карамель', imageUrl: '/frames/candy.png', priceHearts: 500, locked: false, sortOrder: 9 },
-    { id: 'purple', name: 'Фиолетовая', imageUrl: '/frames/purple.png', priceHearts: 500, locked: false, sortOrder: 10 },
-    { id: 'teal', name: 'Бирюзовая', imageUrl: '/frames/teal.png', priceHearts: 500, locked: false, sortOrder: 11 },
+    { id: 'egypt', name: 'Египет', imageUrl: '/frames/egypt.png', priceHearts: 500, locked: false, sortOrder: 2 },
+    { id: 'casino', name: 'Казино', imageUrl: '/frames/casino.svg', priceHearts: null, locked: true, sortOrder: 3 },
+    { id: 'cards', name: 'Карты', imageUrl: '/frames/cards.svg', priceHearts: 500, locked: false, sortOrder: 4 },
+    { id: 'moon', name: 'Луна и звёзды', imageUrl: '/frames/moon.svg', priceHearts: 500, locked: false, sortOrder: 5 },
+    { id: 'rainbow', name: 'Облака и радуга', imageUrl: '/frames/rainbow.svg', priceHearts: 500, locked: false, sortOrder: 6 },
+    { id: 'neon', name: 'Неоновая', imageUrl: '/frames/neon.svg', priceHearts: 500, locked: false, sortOrder: 7 },
+    { id: 'chains', name: 'Цепи и огонь', imageUrl: '/frames/chains.svg', priceHearts: 500, locked: false, sortOrder: 8 },
+    { id: 'candy', name: 'Карамель', imageUrl: '/frames/candy.svg', priceHearts: 500, locked: false, sortOrder: 9 },
+    { id: 'purple', name: 'Фиолетовая', imageUrl: '/frames/purple.svg', priceHearts: 500, locked: false, sortOrder: 10 },
+    { id: 'teal', name: 'Бирюзовая', imageUrl: '/frames/teal.svg', priceHearts: 500, locked: false, sortOrder: 11 },
   ];
   for (const f of frames) {
     await prisma.frameCatalog.upsert({
       where: { id: f.id },
-      update: {},
+      update: {
+        name: f.name,
+        imageUrl: f.imageUrl,
+        priceHearts: f.priceHearts,
+        locked: f.locked,
+        sortOrder: f.sortOrder,
+      },
       create: f as any,
     });
   }

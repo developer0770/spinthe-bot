@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { TablePlayerSlotDTO } from '@spinthe/shared';
-import { getFrameImageUrl } from '../../utils/frameUtils';
+import { getFrameImageUrl, handleFrameError } from '../../utils/frameUtils';
 
 interface Props {
   slot: TablePlayerSlotDTO | null;
@@ -44,33 +44,32 @@ export default function PlayerSlot({ slot, isMe, isHost, canKick, onKick, connSt
         } ${canKick ? 'cursor-pointer hover:ring-2 hover:ring-red-500' : ''}`}
         style={{ backgroundColor: color }}
       >
-        {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={user.name}
-            className="w-full h-full object-cover rounded-xl"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        ) : (
-          initial
-        )}
-        {/* Рамка PNG */}
+        <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center relative">
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name}
+              className="w-full h-full object-cover rounded-xl"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            initial
+          )}
+        </div>
+        {/* Рамка */}
         {user.activeFrameId && (
           <img
             src={getFrameImageUrl(user.activeFrameId) || ''}
             alt="frame"
-            className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
-            style={{ objectFit: 'contain' }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none z-10"
+            onError={handleFrameError}
           />
         )}
         {/* Корона хоста */}
         {isHost && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl">👑</div>
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl z-20">👑</div>
         )}
         {/* Индикатор реконнекта */}
         {connStatus === 'reconnecting' && (

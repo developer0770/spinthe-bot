@@ -4,7 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { useRouter } from '../store/routerStore';
 import { hapticSelect, hapticImpact } from '../utils/telegram';
 import { useSocialSocket } from '../hooks/useSocialSocket';
-import { getFrameImageUrl } from '../utils/frameUtils';
+import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
 import FriendsScreen from './FriendsScreen';
 import AdminScreen from './AdminScreen';
 import EditProfileScreen from './EditProfileScreen';
@@ -76,20 +76,17 @@ export default function ProfileScreen() {
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-pink via-accent-purple to-accent-blue flex items-center justify-center text-4xl font-black shadow-lg ring-4 ring-white/20 overflow-hidden relative">
               {me?.avatarUrl ? <img src={me.avatarUrl} className="w-full h-full object-cover" alt="" /> : name[0]}
-              {/* Рамка PNG */}
-              {me?.activeFrameId && (
-                <img
-                  src={getFrameImageUrl(me.activeFrameId) || ''}
-                  alt="frame"
-                  className="absolute inset-0 w-full h-full rounded-full pointer-events-none"
-                  style={{ objectFit: 'contain' }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              )}
             </div>
-            {me?.isVip && <div className="absolute -top-1 -right-1 text-2xl animate-float">👑</div>}
+            {/* Рамка */}
+            {me?.activeFrameId && (
+              <img
+                src={getFrameImageUrl(me.activeFrameId) || ''}
+                alt="frame"
+                className="absolute -inset-2.5 w-[calc(100%+20px)] h-[calc(100%+20px)] object-contain pointer-events-none z-10"
+                onError={handleFrameError}
+              />
+            )}
+            {me?.isVip && <div className="absolute -top-1 -right-1 text-2xl animate-float z-20">👑</div>}
           </div>
           <div className="mt-3 text-white text-2xl font-bold flex items-center gap-2 flex-wrap justify-center">
             {gender} {name}
