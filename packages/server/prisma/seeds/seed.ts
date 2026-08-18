@@ -25,18 +25,25 @@ async function main() {
 
   // Рамки
   const frames = [
-    { id: 'none', name: 'Без украшений', imageUrl: '', priceHearts: null, locked: false, sortOrder: 0 },
-    { id: 'fantasy', name: 'Фэнтези', imageUrl: '/frames/fantasy.png', priceHearts: null, locked: true, sortOrder: 1 },
+    { id: 'none', name: 'Без рамки', imageUrl: '', priceHearts: null, locked: false, sortOrder: 0 },
+    { id: 'fantasy', name: 'Фэнтези', imageUrl: '/frames/fantasy.png', priceHearts: 500, locked: false, sortOrder: 1 },
     { id: 'egypt', name: 'Египет', imageUrl: '/frames/egypt.png', priceHearts: 500, locked: false, sortOrder: 2 },
-    { id: 'casino', name: 'Казино', imageUrl: '/frames/casino.svg', priceHearts: null, locked: true, sortOrder: 3 },
-    { id: 'cards', name: 'Карты', imageUrl: '/frames/cards.svg', priceHearts: 500, locked: false, sortOrder: 4 },
-    { id: 'moon', name: 'Луна и звёзды', imageUrl: '/frames/moon.svg', priceHearts: 500, locked: false, sortOrder: 5 },
-    { id: 'rainbow', name: 'Облака и радуга', imageUrl: '/frames/rainbow.svg', priceHearts: 500, locked: false, sortOrder: 6 },
-    { id: 'neon', name: 'Неоновая', imageUrl: '/frames/neon.svg', priceHearts: 500, locked: false, sortOrder: 7 },
-    { id: 'chains', name: 'Цепи и огонь', imageUrl: '/frames/chains.svg', priceHearts: 500, locked: false, sortOrder: 8 },
-    { id: 'candy', name: 'Карамель', imageUrl: '/frames/candy.svg', priceHearts: 500, locked: false, sortOrder: 9 },
-    { id: 'purple', name: 'Фиолетовая', imageUrl: '/frames/purple.svg', priceHearts: 500, locked: false, sortOrder: 10 },
-    { id: 'teal', name: 'Бирюзовая', imageUrl: '/frames/teal.svg', priceHearts: 500, locked: false, sortOrder: 11 },
+    { id: 'vostok', name: 'Восток', imageUrl: '/frames/1.png', priceHearts: 500, locked: false, sortOrder: 3 },
+    { id: '1', name: 'Восток', imageUrl: '/frames/1.png', priceHearts: 500, locked: false, sortOrder: 4 },
+    { id: '2', name: 'Премиум Золото', imageUrl: '/frames/2.png', priceHearts: 500, locked: false, sortOrder: 5 },
+    { id: '3', name: 'Рубин', imageUrl: '/frames/3.png', priceHearts: 500, locked: false, sortOrder: 6 },
+    { id: 'casino', name: 'Казино', imageUrl: '/frames/casino.svg', priceHearts: 500, locked: false, sortOrder: 7 },
+    { id: 'cards', name: 'Карты', imageUrl: '/frames/cards.svg', priceHearts: 500, locked: false, sortOrder: 8 },
+    { id: 'moon', name: 'Луна и звёзды', imageUrl: '/frames/moon.svg', priceHearts: 500, locked: false, sortOrder: 9 },
+    { id: 'rainbow', name: 'Облака и радуга', imageUrl: '/frames/rainbow.svg', priceHearts: 500, locked: false, sortOrder: 10 },
+    { id: 'neon', name: 'Неоновая', imageUrl: '/frames/neon.svg', priceHearts: 500, locked: false, sortOrder: 11 },
+    { id: 'chains', name: 'Цепи и огонь', imageUrl: '/frames/chains.svg', priceHearts: 500, locked: false, sortOrder: 12 },
+    { id: 'candy', name: 'Карамель', imageUrl: '/frames/candy.svg', priceHearts: 500, locked: false, sortOrder: 13 },
+    { id: 'purple', name: 'Фиолетовая', imageUrl: '/frames/purple.svg', priceHearts: 500, locked: false, sortOrder: 14 },
+    { id: 'teal', name: 'Бирюзовая', imageUrl: '/frames/teal.svg', priceHearts: 500, locked: false, sortOrder: 15 },
+    { id: 'gothic', name: 'Готика', imageUrl: '/frames/gothic.svg', priceHearts: 500, locked: false, sortOrder: 16 },
+    { id: 'plants', name: 'Природа', imageUrl: '/frames/plants.svg', priceHearts: 500, locked: false, sortOrder: 17 },
+    { id: 'vip', name: 'VIP Рамка', imageUrl: '/frames/vip.svg', priceHearts: 500, locked: false, sortOrder: 18 },
   ];
   for (const f of frames) {
     await prisma.frameCatalog.upsert({

@@ -180,7 +180,7 @@ function FrameCard({ id, name, emoji, equipped, onEquip }: { id: string | null; 
           <img
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-contain pointer-events-none"
+            className="w-full h-full object-contain pointer-events-none scale-105"
             onError={handleFrameError}
           />
         ) : (

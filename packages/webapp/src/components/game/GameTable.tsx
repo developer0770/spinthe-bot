@@ -212,7 +212,7 @@ export default function GameTable({ onLeave }: Props) {
                       <img
                         src={getFrameImageUrl(p.user.activeFrameId) || ''}
                         alt="frame"
-                        className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none z-10"
+                        className="absolute inset-0 w-full h-full pointer-events-none z-10 object-contain scale-105"
                         onError={handleFrameError}
                       />
                     )}

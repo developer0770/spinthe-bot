@@ -73,16 +73,21 @@ export default function ProfileScreen() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-accent-pink/20 via-accent-purple/20 to-accent-blue/20" />
         <div className="relative z-10 flex flex-col items-center w-full">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-pink via-accent-purple to-accent-blue flex items-center justify-center text-4xl font-black shadow-lg ring-4 ring-white/20 overflow-hidden relative">
-              {me?.avatarUrl ? <img src={me.avatarUrl} className="w-full h-full object-cover" alt="" /> : name[0]}
+          <div className="relative w-24 h-24 flex items-center justify-center">
+            {/* Квадратная аватарка со скруглением */}
+            <div className="w-full h-full rounded-2xl bg-gradient-to-br from-accent-pink via-accent-purple to-accent-blue flex items-center justify-center text-4xl font-black shadow-lg ring-2 ring-white/20 overflow-hidden">
+              {me?.avatarUrl ? (
+                <img src={me.avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+              ) : (
+                name[0]
+              )}
             </div>
-            {/* Рамка */}
+            {/* Рамка, точно облегающая квадратную аватарку */}
             {me?.activeFrameId && (
               <img
                 src={getFrameImageUrl(me.activeFrameId) || ''}
                 alt="frame"
-                className="absolute -inset-2.5 w-[calc(100%+20px)] h-[calc(100%+20px)] object-contain pointer-events-none z-10"
+                className="absolute inset-0 w-full h-full pointer-events-none z-10 object-contain scale-105"
                 onError={handleFrameError}
               />
             )}
