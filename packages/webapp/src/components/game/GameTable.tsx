@@ -12,7 +12,7 @@ import { useRoomStore } from '../../store/roomStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRoomSocket } from '../../hooks/useRoomSocket';
 import { useEconomyStore } from '../../store/economyStore';
-import { getFrameImageUrl, handleFrameError } from '../../utils/frameUtils';
+import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../../utils/frameUtils';
 
 interface Props {
   onLeave?: () => void;
@@ -212,7 +212,7 @@ export default function GameTable({ onLeave }: Props) {
                       <img
                         src={getFrameImageUrl(p.user.activeFrameId) || ''}
                         alt="frame"
-                        className="absolute inset-0 w-full h-full pointer-events-none z-10 object-contain scale-105"
+                        className={`absolute inset-0 w-full h-full pointer-events-none z-10 object-contain ${getFrameScaleClass(p.user.activeFrameId)}`}
                         onError={handleFrameError}
                       />
                     )}

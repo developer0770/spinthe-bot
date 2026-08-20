@@ -24,6 +24,8 @@ async function main() {
   }
 
   // Рамки
+  await prisma.frameCatalog.deleteMany({});
+
   const frames = [
     { id: 'none', name: 'Без рамки', imageUrl: '', priceHearts: null, locked: false, sortOrder: 0 },
     { id: 'fantasy', name: 'Фэнтези', imageUrl: '/frames/fantasy.png', priceHearts: 500, locked: false, sortOrder: 1 },
@@ -32,8 +34,8 @@ async function main() {
     { id: 'neonlily', name: 'Неоновая лилия', imageUrl: '/frames/neonlily.png', priceHearts: 500, locked: false, sortOrder: 4 },
     { id: 'rattlesnakeMystery', name: 'Премиум Золото', imageUrl: '/frames/rattlesnakeMystery.png', priceHearts: 500, locked: false, sortOrder: 5 },
     { id: 'romanticmessage', name: 'Романтическое сообщение', imageUrl: '/frames/romanticmessage.png', priceHearts: 500, locked: false, sortOrder: 6 },
-    { id: 'roza', name: 'Роза', imageUrl: '/frames/roza.svg', priceHearts: 500, locked: false, sortOrder: 7 },
-    { id: 'springsurprise', name: 'Весеннее удивление', imageUrl: '/frames/springsurprise.svg', priceHearts: 500, locked: false, sortOrder: 8 },
+    { id: 'roza', name: 'Роза', imageUrl: '/frames/roza.png', priceHearts: 500, locked: false, sortOrder: 7 },
+    { id: 'springsurprise', name: 'Весеннее удивление', imageUrl: '/frames/springsurprise.png', priceHearts: 500, locked: false, sortOrder: 8 },
   ];
   for (const f of frames) {
     await prisma.frameCatalog.upsert({

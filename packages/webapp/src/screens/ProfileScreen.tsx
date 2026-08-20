@@ -4,7 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { useRouter } from '../store/routerStore';
 import { hapticSelect, hapticImpact } from '../utils/telegram';
 import { useSocialSocket } from '../hooks/useSocialSocket';
-import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
+import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../utils/frameUtils';
 import FriendsScreen from './FriendsScreen';
 import AdminScreen from './AdminScreen';
 import EditProfileScreen from './EditProfileScreen';
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
               <img
                 src={getFrameImageUrl(me.activeFrameId) || ''}
                 alt="frame"
-                className="absolute inset-0 w-full h-full pointer-events-none z-10 object-contain scale-105"
+                className={`absolute inset-0 w-full h-full pointer-events-none z-10 object-contain ${getFrameScaleClass(me.activeFrameId)}`}
                 onError={handleFrameError}
               />
             )}

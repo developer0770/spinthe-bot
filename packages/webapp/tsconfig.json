@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@spinthe/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src"]

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { TablePlayerSlotDTO } from '@spinthe/shared';
-import { getFrameImageUrl, handleFrameError } from '../../utils/frameUtils';
+import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../../utils/frameUtils';
 
 interface Props {
   slot: TablePlayerSlotDTO | null;
@@ -63,7 +63,7 @@ export default function PlayerSlot({ slot, isMe, isHost, canKick, onKick, connSt
           <img
             src={getFrameImageUrl(user.activeFrameId) || ''}
             alt="frame"
-            className="absolute inset-0 w-full h-full pointer-events-none z-10 object-contain scale-105"
+            className={`absolute inset-0 w-full h-full pointer-events-none z-10 object-contain ${getFrameScaleClass(user.activeFrameId)}`}
             onError={handleFrameError}
           />
         )}

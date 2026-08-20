@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@spinthe/shared": ["./packages/shared/src/index.ts"]
+    }
+  }
+}

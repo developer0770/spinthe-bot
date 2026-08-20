@@ -5,7 +5,7 @@ import { useUserStore } from '../store/userStore';
 import { useAuthStore } from '../store/authStore';
 import { useSocialStore } from '../store/socialStore';
 import { useRoomStore } from '../store/roomStore';
-import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
+import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../utils/frameUtils';
 import {
   fetchHeartPacks,
   fetchGifts,
@@ -366,6 +366,7 @@ export default function ShopScreen() {
             {skinTab === 'frames' && store.frames.map((f, i) => (
               <SkinCard
                 key={f.id}
+                id={f.id}
                 i={i}
                 imageUrl={f.imageUrl || getFrameImageUrl(f.id)}
                 name={f.name}
@@ -441,8 +442,9 @@ export default function ShopScreen() {
 }
 
 function SkinCard({
-  i, emoji, imageUrl, name, price, owned, isEquipped, buying, onBuy, onEquip,
+  id, i, emoji, imageUrl, name, price, owned, isEquipped, buying, onBuy, onEquip,
 }: {
+  id?: string;
   i: number;
   emoji?: string;
   imageUrl?: string | null;
@@ -466,7 +468,7 @@ function SkinCard({
           <img
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-contain pointer-events-none scale-105"
+            className={`w-full h-full object-contain pointer-events-none ${getFrameScaleClass(id)}`}
             onError={handleFrameError}
           />
         ) : (

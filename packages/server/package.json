@@ -35,6 +35,6 @@
     "typescript": "^5.5.4"
   },
   "prisma": {
-  "seed": "tsx prisma/seeds/seed.ts"
-}
+    "seed": "tsx --tsconfig ../../tsconfig.json prisma/seeds/seed.ts"
+  }
 }

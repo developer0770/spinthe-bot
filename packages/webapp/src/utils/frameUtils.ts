@@ -22,7 +22,20 @@ export function getFrameImageUrl(frameId: string | null | undefined): string | n
     return frameId.startsWith('/') ? frameId : `/frames/${frameId}`;
   }
 
-  return `/frames/${frameId}.svg`;
+  return `/frames/${frameId}.png`;
+}
+
+/**
+ * Возвращает CSS-класс масштаба Tailwind для рамки.
+ * По умолчанию 'scale-125', чтобы картинка полностью перекрывала края аватарки.
+ * Для рамки 'egypt' используется 'scale-115' для предотвращения чрезмерного увеличения.
+ */
+export function getFrameScaleClass(frameId: string | null | undefined): string {
+  if (!frameId || frameId === 'none') return 'scale-125';
+  if (frameId === 'egypt' || frameId.includes('egypt')) {
+    return 'scale-115';
+  }
+  return 'scale-125';
 }
 
 /**

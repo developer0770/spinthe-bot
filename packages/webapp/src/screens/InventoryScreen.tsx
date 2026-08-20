@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { hapticSelect } from '../utils/telegram';
 import { useAuthStore } from '../store/authStore';
 import { useUserStore } from '../store/userStore';
-import { getFrameImageUrl, handleFrameError } from '../utils/frameUtils';
+import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../utils/frameUtils';
 
 interface InventoryItem {
   bottles: Array<{ id: string; name: string; imageUrl: string; acquiredAt: string }>;
@@ -180,7 +180,7 @@ function FrameCard({ id, name, emoji, equipped, onEquip }: { id: string | null; 
           <img
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-contain pointer-events-none scale-105"
+            className={`w-full h-full object-contain pointer-events-none ${getFrameScaleClass(id)}`}
             onError={handleFrameError}
           />
         ) : (
