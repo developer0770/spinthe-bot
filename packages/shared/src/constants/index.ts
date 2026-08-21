@@ -28,14 +28,11 @@ export const GIFT_CATALOG_SEED = [
 ];
 
 export const BOTTLE_SKINS_SEED = [
-  { id: 'classic_green', name: 'Классическая', imageUrl: '/bottles/classic-green.png', priceHearts: 0 },
-  { id: 'golden', name: 'Золотая', imageUrl: '/bottles/gold.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'brown_beer', name: 'Пивная', imageUrl: '/bottles/brown-beer.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'whiskey', name: 'Виски', imageUrl: '/bottles/whiskey.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'cola', name: 'Кола', imageUrl: '/bottles/cola.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'milk_bottle', name: 'Молочная', imageUrl: '/bottles/milk.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'lime_soda', name: 'Лимонад', imageUrl: '/bottles/lime-soda.png', priceHearts: BOTTLE_SKIN_PRICE },
-  { id: 'champagne_bottle', name: 'Шампанское', imageUrl: '/bottles/champagne.png', priceHearts: BOTTLE_SKIN_PRICE },
+  { id: 'green', name: 'Зеленая', imageUrl: '/bottles/green.png', priceHearts: 0 },
+  { id: 'golden', name: 'Золотая', imageUrl: '/bottles/goldb.png', priceHearts: BOTTLE_SKIN_PRICE },
+  { id: 'blue', name: 'Синяя', imageUrl: '/bottles/blue.png', priceHearts: BOTTLE_SKIN_PRICE },
+  { id: 'prime', name: 'Прайм', imageUrl: '/bottles/prime.png', priceHearts: BOTTLE_SKIN_PRICE },
+  { id: 'cola', name: 'Кола', imageUrl: '/bottles/cocacola.png', priceHearts: BOTTLE_SKIN_PRICE },
 ];
 
 export const HEART_PACKS = [
