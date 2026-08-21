@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { useSocialStore } from '../store/socialStore';
 import { useRoomStore } from '../store/roomStore';
 import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../utils/frameUtils';
+import { getBottleImageUrl, handleBottleError } from '../utils/bottleUtils';
 import {
   fetchHeartPacks,
   fetchGifts,
@@ -352,8 +353,9 @@ export default function ShopScreen() {
             {skinTab === 'bottles' && store.bottles.map((b, i) => (
               <SkinCard
                 key={b.id}
+                id={b.id}
                 i={i}
-                emoji="🍾"
+                imageUrl={b.imageUrl || getBottleImageUrl(b.id)}
                 name={b.name}
                 price={b.priceHearts}
                 owned={b.owned}
@@ -361,6 +363,7 @@ export default function ShopScreen() {
                 buying={action === 'b' + b.id}
                 onBuy={() => handleBuyBottle(b.id)}
                 onEquip={() => handleEquipBottle(b.id)}
+                isBottle={true}
               />
             ))}
             {skinTab === 'frames' && store.frames.map((f, i) => (
@@ -442,7 +445,7 @@ export default function ShopScreen() {
 }
 
 function SkinCard({
-  id, i, emoji, imageUrl, name, price, owned, isEquipped, buying, onBuy, onEquip,
+  id, i, emoji, imageUrl, name, price, owned, isEquipped, buying, onBuy, onEquip, isBottle,
 }: {
   id?: string;
   i: number;
@@ -455,6 +458,7 @@ function SkinCard({
   buying: boolean;
   onBuy: () => void;
   onEquip: () => void;
+  isBottle?: boolean;
 }) {
   return (
     <motion.div
@@ -468,11 +472,11 @@ function SkinCard({
           <img
             src={imageUrl}
             alt={name}
-            className={`w-full h-full object-contain pointer-events-none ${getFrameScaleClass(id)}`}
-            onError={handleFrameError}
+            className={`w-full h-full object-contain pointer-events-none ${isBottle ? '' : getFrameScaleClass(id)}`}
+            onError={isBottle ? handleBottleError : handleFrameError}
           />
         ) : (
-          <div className="text-5xl">{emoji || '🖼️'}</div>
+          <div className="text-5xl">{emoji || (isBottle ? '🍾' : '🖼️')}</div>
         )}
       </div>
       <div className="text-white text-xs font-bold text-center mb-1">{name}</div>

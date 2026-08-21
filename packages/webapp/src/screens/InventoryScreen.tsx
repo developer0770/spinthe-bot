@@ -5,6 +5,7 @@ import { hapticSelect } from '../utils/telegram';
 import { useAuthStore } from '../store/authStore';
 import { useUserStore } from '../store/userStore';
 import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../utils/frameUtils';
+import { getBottleImageUrl, handleBottleError } from '../utils/bottleUtils';
 
 interface InventoryItem {
   bottles: Array<{ id: string; name: string; imageUrl: string; acquiredAt: string }>;
@@ -83,11 +84,11 @@ export default function InventoryScreen({ onClose }: { onClose: () => void }) {
         {!loading && tab === 'bottles' && (
           <div className="grid grid-cols-3 gap-3">
             <BottleCard
-              id="classic_green"
+              id="green"
               name="Классическая"
               emoji="🍾"
               owned={true}
-              equipped={me?.activeBottleId === 'classic_green'}
+              equipped={me?.activeBottleId === 'classic_green' || me?.activeBottleId === 'green'}
               onEquip={() => equipBottle('classic_green')}
             />
             {inv?.bottles.map((b) => (
@@ -95,6 +96,7 @@ export default function InventoryScreen({ onClose }: { onClose: () => void }) {
                 key={b.id}
                 id={b.id}
                 name={b.name}
+                imageUrl={b.imageUrl}
                 emoji="🍾"
                 owned={true}
                 equipped={me?.activeBottleId === b.id}
@@ -148,14 +150,27 @@ export default function InventoryScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
-function BottleCard({ name, emoji, equipped, onEquip }: { id: string; name: string; emoji: string; owned: boolean; equipped: boolean; onEquip: () => void }) {
+function BottleCard({ id, name, emoji, imageUrl, equipped, onEquip }: { id: string; name: string; emoji?: string; imageUrl?: string; owned: boolean; equipped: boolean; onEquip: () => void }) {
+  const imgSrc = imageUrl || getBottleImageUrl(id);
+
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onEquip}
       className={`glass rounded-2xl p-4 flex flex-col items-center gap-2 ${equipped ? 'ring-2 ring-lime' : ''}`}
     >
-      <div className="text-5xl">{emoji}</div>
+      <div className="w-14 h-14 relative flex items-center justify-center">
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={name}
+            className="w-full h-full object-contain pointer-events-none"
+            onError={handleBottleError}
+          />
+        ) : (
+          <div className="text-4xl">{emoji || '🍾'}</div>
+        )}
+      </div>
       <div className="text-white text-xs font-bold text-center">{name}</div>
       {equipped ? (
         <div className="text-lime text-[10px] font-bold">✓ Надето</div>

@@ -19,10 +19,15 @@ interface Props {
  */
 const BOTTLE_COLORS: Record<string, { color: string; cap: number; label?: string }> = {
   classic_green: { color: '#2e7d32', cap: 0xd32f2f },
+  green: { color: '#2e7d32', cap: 0xd32f2f },
   golden: { color: '#f9c74f', cap: 0x8b4513 },
+  goldb: { color: '#f9c74f', cap: 0x8b4513 },
+  blue: { color: '#2b5ea8', cap: 0x1a365d },
+  prime: { color: '#e63946', cap: 0x1d3557 },
+  cola: { color: '#3e1616', cap: 0xcc0000 },
+  cocacola: { color: '#3e1616', cap: 0xcc0000 },
   brown_beer: { color: '#8b5a2b', cap: 0x222222 },
   whiskey: { color: '#6d3c11', cap: 0x111111 },
-  cola: { color: '#3e1616', cap: 0xcc0000 },
   milk_bottle: { color: 'rgba(255,255,255,0.5)', cap: 0x4499dd },
   lime_soda: { color: '#94c92e', cap: 0xffffff },
   champagne_bottle: { color: '#1a1a1a', cap: 0xf9c74f },
