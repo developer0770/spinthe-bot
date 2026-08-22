@@ -164,6 +164,7 @@ function BottleCard({ id, name, emoji, imageUrl, equipped, onEquip }: { id: stri
           <img
             src={imgSrc}
             alt={name}
+            style={{ objectFit: 'contain' }}
             className="w-full h-full object-contain pointer-events-none"
             onError={handleBottleError}
           />

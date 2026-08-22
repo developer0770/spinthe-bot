@@ -472,6 +472,7 @@ function SkinCard({
           <img
             src={imageUrl}
             alt={name}
+            style={{ objectFit: 'contain' }}
             className={`w-full h-full object-contain pointer-events-none ${isBottle ? '' : getFrameScaleClass(id)}`}
             onError={isBottle ? handleBottleError : handleFrameError}
           />

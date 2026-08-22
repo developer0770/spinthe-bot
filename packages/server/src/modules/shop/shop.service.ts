@@ -195,7 +195,7 @@ export async function buyFrame(userId: number, frameId: string) {
 /** Экипировать скин бутылочки. */
 export async function equipBottle(userId: number, bottleId: string) {
   const owned = await prisma.userBottle.findUnique({ where: { userId_bottleId: { userId, bottleId } } });
-  if (!owned && bottleId !== 'classic_green') throw new Error('not_owned');
+  if (!owned && bottleId !== 'classic_green' && bottleId !== 'green') throw new Error('not_owned');
   await prisma.user.update({ where: { id: userId }, data: { activeBottleId: bottleId } });
 }
 

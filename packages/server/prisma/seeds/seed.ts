@@ -7,6 +7,7 @@ async function main() {
   console.log('🌱 Seeding...');
 
   // Бутылочки
+  await prisma.bottleCatalog.deleteMany();
   for (const b of BOTTLE_SKINS_SEED) {
     await prisma.bottleCatalog.upsert({
       where: { id: b.id },
