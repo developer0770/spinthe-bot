@@ -243,14 +243,6 @@ export default function ShopScreen() {
           <span className="text-xl">❤️</span>
           <span className="text-white font-black">{me?.hearts ?? 0}</span>
         </div>
-        <div className="flex-1 glass rounded-2xl px-3 py-2 flex items-center gap-2">
-          <span className="text-xl">🪙</span>
-          <span className="text-white font-black">{me?.coins ?? 0}</span>
-        </div>
-        <div className="flex-1 glass rounded-2xl px-3 py-2 flex items-center gap-2">
-          <span className="text-xl">💎</span>
-          <span className="text-white font-black">{me?.gems ?? 0}</span>
-        </div>
       </div>
 
       {/* Табы */}

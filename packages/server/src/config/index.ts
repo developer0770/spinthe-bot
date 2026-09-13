@@ -28,7 +28,7 @@ function required(key: string, fallback?: string): string {
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProd: process.env.NODE_ENV === 'production',
-  port: parseInt(process.env.SERVER_PORT || '3000', 10),
+  port: parseInt(process.env.PORT || process.env.SERVER_PORT || '3000', 10),
 
   jwt: {
     secret: required('JWT_SECRET', 'dev-secret-change-me'),
@@ -54,6 +54,7 @@ export const config = {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
   },
+  webAppUrl: process.env.WEBAPP_URL || '*',
 };
 
 if (config.isProd && !process.env.BOT_TOKEN) {

@@ -16,11 +16,11 @@ let listenersBound = false;
  */
 export function getSocket(): AppSocket {
   if (socket) return socket;
-  const WS_URL = import.meta.env.VITE_WS_URL || '';
+  const WS_URL = import.meta.env.VITE_WS_URL || window.location.origin;
   socket = io(WS_URL, {
     path: '/socket.io',
     transports: ['websocket', 'polling'],
-    autoConnect: false,
+    autoConnect: true,//false, change to true
     auth: (cb: (data: object) => void) => {
       const token = getToken();
       cb({ token: token || '' });
