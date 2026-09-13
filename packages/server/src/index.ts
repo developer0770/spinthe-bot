@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { config } from './config';
 import { prisma } from './db/prisma';
 import './db/redis'; // подключаемся к Redis при старте
@@ -18,15 +19,15 @@ import adminRoutes from './modules/admin/admin.routes';
 async function bootstrap() {
   const app = express();
   
-  // 💡 Доверяем прокси Render для корректной работы express-rate-limit
+  // Доверяем прокси Render для корректной работы express-rate-limit
   app.set('trust proxy', 1);
 
   const server = http.createServer(app);
 
-  // Security headers
+  // Security headers (Разрешаем открытие в iframe для Telegram Mini App)
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Frame-Options', 'ALLOWALL');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     next();
   });
@@ -71,7 +72,7 @@ async function bootstrap() {
     res.json({ ok: true, uptime: process.uptime(), env: config.nodeEnv });
   });
 
-  // Routes
+  // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);
   app.use('/api/rooms', roomsRoutes);
@@ -82,12 +83,24 @@ async function bootstrap() {
   app.use('/api/economy', shopRoutes);    // алиас для daily/inventory
   app.use('/api/admin', adminRoutes);
 
-  // 404 для /api/*
+  // 404 только для несуществующих /api/* маршрутов
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'not_found' });
   });
 
-  // Error handler
+  // Раздача статики собранного фронтенда
+  const webappDistPath = path.resolve(__dirname, '../../webapp/dist');
+  app.use(express.static(webappDistPath));
+
+  // Возвращаем index.html для всех SPA маршрутов (Telegram Mini App)
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(webappDistPath, 'index.html'));
+  });
+
+  // Global Error handler
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('[error]', err);
     res.status(500).json({ error: 'internal_error', message: err.message });
@@ -102,11 +115,12 @@ async function bootstrap() {
     console.log('[db] connected');
   } catch (e) {
     console.error('[db] connection failed:', (e as Error).message);
-    console.warn('[db] Убедитесь, что PostgreSQL запущен (docker compose up -d postgres)');
+    console.warn('[db] Убедитесь, что PostgreSQL запущен');
   }
 
-  server.listen(config.port, () => {
-    console.log(`[server] listening on http://localhost:${config.port}`);
+  // Запуск сервера на 0.0.0.0
+  server.listen(config.port, '0.0.0.0', () => {
+    console.log(`[server] listening on http://0.0.0.0:${config.port}`);
     console.log(`[server] env: ${config.nodeEnv}`);
     console.log(`[server] botToken: ${config.telegram.botToken ? 'configured ✓' : '⚠️  НЕ ЗАДАН (dev-mode fallback)'}`);
   });
