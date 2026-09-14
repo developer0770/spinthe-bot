@@ -17,17 +17,21 @@ export default function ProfileSetup({ onComplete }: { onComplete: () => void })
 
   const canContinue = gender !== null;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canContinue) return;
     hapticImpact('medium');
     // Сохраняем профиль на бэк: пол + дата рождения по возрасту
     const birthDate = new Date();
     birthDate.setFullYear(birthDate.getFullYear() - age);
-    api('/users/me', {
-      method: 'PATCH',
-      body: JSON.stringify({ gender, birthDate: birthDate.toISOString().slice(0, 10) }),
-    }).catch(() => {});
-    onComplete();
+    try {
+      await api('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ gender, birthDate: birthDate.toISOString().slice(0, 10) }),
+      });
+      onComplete();
+    } catch (e) {
+      console.error('Failed to update profile', e);
+    }
   };
 
   return (

@@ -5,6 +5,8 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 const TOKEN_KEY = 'spinthe:token';
 const USER_KEY = 'spinthe:user';
 
+import type { UserDTO } from '@spinthe/shared';
+
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
@@ -53,7 +55,10 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
   return data as T;
 }
 
-export async function getMe<T = any>() { return api<T>('/users/me'); }
+export async function getMe(): Promise<UserDTO> {
+  const res = await api<{ ok: boolean; user: UserDTO }>('/users/me');
+  return res.user;
+}
 
 export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '../store/userStore';
+import { useAuthStore } from '../store/authStore';
 import { getMe } from '../api/client';
 import AuthLoading from '../components/splash/AuthLoading';
 import GameRoot from './GameRoot';
@@ -20,6 +21,7 @@ export default function SplashScreen() {
   const [stage, setStage] = useState<'splash' | 'loading' | 'onboarding' | 'game'>('splash');
   const [err, setErr] = useState<string | null>(null);
   const setMe = useUserStore((s) => s.setMe);
+  const setAuthUser = useAuthStore((s) => s.setUser);
 
   useEffect(() => {
     // Схватываем deep link на самом раннем этапе
@@ -31,9 +33,10 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if (stage !== 'loading') return;
-    getMe<UserDTO>()
+    getMe()
       .then((user) => {
         setMe(user);
+        setAuthUser(user);
         if (user.gender && user.age) setStage('game');
         else {
           // Если пришли по инвайту, но профиль не заполнен — запомним код на потом
@@ -105,8 +108,11 @@ export default function SplashScreen() {
       {stage === 'onboarding' && (
         <ProfileSetup key="onb" onComplete={() => {
           // Обновляем пользователя и идём в игру
-          getMe<UserDTO>().then(setMe);
-          setStage('game');
+          getMe().then((user) => {
+            setMe(user);
+            setAuthUser(user);
+            setStage('game');
+          });
         }} />
       )}
 
