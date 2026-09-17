@@ -193,58 +193,72 @@ export async function joinRoom(
   userId: number,
   target: { tableId?: number; code?: string },
 ): Promise<JoinRoomResult> {
-  const where = target.tableId
-    ? { id: target.tableId }
-    : target.code
-    ? { roomCode: target.code.toUpperCase() }
-    : null;
-  if (!where) throw new RoomError('no_target', 'Укажите код или номер стола');
+  if (!target.tableId && !target.code) {
+    throw new RoomError('no_target', 'Укажите код или номер стола');
+  }
 
-  let table = await prisma.table.findUnique({
-    where: where as any,
-    include: { players: { where: { status: 'active' } } },
-  });
+  let table = target.tableId
+    ? await prisma.table.findUnique({
+        where: { id: target.tableId },
+        include: { players: { where: { status: 'active' } } },
+      })
+    : await prisma.table.findUnique({
+        where: { roomCode: target.code!.toUpperCase() },
+        include: { players: { where: { status: 'active' } } },
+      });
+
   if (!table) throw new RoomError('not_found', 'Комната не найдена');
   if (table.status === 'closed') throw new RoomError('closed', 'Комната закрыта');
   if (table.status === 'playing') throw new RoomError('in_progress', 'Игра уже идёт');
 
-  // Проверка: если пользователь уже за этим столом — просто вернём текущее состояние
-  const existing = await prisma.tablePlayer.findUnique({
+  // Проверяем, есть ли уже запись этого игрока за ДАННЫМ столом (в любом статусе)
+  const existingInThisTable = await prisma.tablePlayer.findUnique({
     where: { tableId_userId: { tableId: table.id, userId } },
   });
+
+  // Выходим из ВСЕХ ДРУГИХ столов, за которыми пользователь числился как active
   await leaveCurrentTable(userId);
-  if (existing) {
-    // переподключаем
-    await prisma.tablePlayer.update({
-      where: { id: existing.id },
-      data: { status: 'active', leftAt: null },
-    });
-  }
 
-  // Снова считаем игроков (leaveCurrentTable мог изменить их)
-  table = (await prisma.table.findUnique({
-    where: { id: table.id },
-    include: { players: { where: { status: 'active' } } },
-  }))!;
+  // Переполучаем список активных игроков стола после возможного leaveCurrentTable
+  const activePlayers = await getTablePlayers(table.id);
 
-  if (table.players.length >= table.maxPlayers) {
+  // Проверяем заполненность (если игрок НЕ был уже активным за этим столом)
+  const isAlreadyActiveInThisTable = activePlayers.some((p) => p.userId === userId);
+  if (!isAlreadyActiveInThisTable && activePlayers.length >= table.maxPlayers) {
     throw new RoomError('full', 'Комната заполнена');
   }
 
-  const slots = await getTablePlayers(table.id);
-  const slotIndex = findFreeSlot(slots, table.maxPlayers);
+  // Находим свободное место за столом
+  const slotIndex = findFreeSlot(
+    isAlreadyActiveInThisTable ? activePlayers.filter((p) => p.userId !== userId) : activePlayers,
+    table.maxPlayers,
+  );
   if (slotIndex === null) throw new RoomError('full', 'Нет свободных мест');
 
-  await prisma.tablePlayer.create({
-    data: {
-      tableId: table.id,
-      userId,
-      slotIndex,
-      status: 'active',
-    },
-  });
+  if (existingInThisTable) {
+    // ЕСЛИ ЗАПИСЬ УЖЕ ЕСТЬ В БАЗЕ — ОБНОВЛЯЕМ (без создания дубликата!)
+    await prisma.tablePlayer.update({
+      where: { id: existingInThisTable.id },
+      data: {
+        status: 'active',
+        slotIndex,
+        leftAt: null,
+      },
+    });
+  } else {
+    // СОЗДАЕМ ТОЛЬКО ЕСЛИ ЗАПИСИ РАНЕЕ НЕ БЫЛО
+    await prisma.tablePlayer.create({
+      data: {
+        tableId: table.id,
+        userId,
+        slotIndex,
+        status: 'active',
+      },
+    });
+  }
 
-  const tableDTO = await toTableDTO(table);
+  const updatedTable = await prisma.table.findUnique({ where: { id: table.id } });
+  const tableDTO = await toTableDTO(updatedTable!);
   return { table: tableDTO, players: tableDTO.players, slotIndex };
 }
 

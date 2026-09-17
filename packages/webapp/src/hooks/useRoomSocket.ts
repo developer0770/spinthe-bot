@@ -1,5 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { getSocket, connectSocket, AppSocket } from '../socket/client';
+import {
+  getSocket,
+  connectSocket,
+  AppSocket,
+  isListenersBound,
+  markListenersBound,
+} from '../socket/client';
 import { useRoomStore } from '../store/roomStore';
 import { useAuthStore } from '../store/authStore';
 import { useEconomyStore } from '../store/economyStore';
@@ -7,8 +13,6 @@ import { useSocialStore } from '../store/socialStore';
 import { useUserStore } from '../store/userStore';
 import { fetchFriends, fetchConversations, fetchNotifications } from '../api/social';
 import { api } from '../api/client';
-
-let bound = false;
 
 /**
  * Подписывается один раз на события сокета, связанные с комнатой/игрой/чатом.
@@ -19,63 +23,70 @@ export function useRoomSocket() {
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    if (bound) return;
-    bound = true;
+    if (!user) return;
+
+    // Используем централизованную проверку биндинга слушателей
+    if (isListenersBound()) {
+      socketRef.current = getSocket();
+      return;
+    }
+    markListenersBound();
+
     const s = connectSocket();
     socketRef.current = s;
 
     if (!s.connected) s.connect();
 
-    // ---- Room events ----
-    s.on('room:joined', (data) => {
+    // ---- Room handlers ----
+    const handleRoomJoined = (data: any) => {
       useRoomStore.getState().setJoined(data);
-    });
-    s.on('room:player_joined', ({ player }) => {
+    };
+    const handlePlayerJoined = ({ player }: any) => {
       useRoomStore.getState().addPlayer(player);
-    });
-    s.on('room:player_left', ({ userId, reason, newHostId }) => {
+    };
+    const handlePlayerLeft = ({ userId, reason, newHostId }: any) => {
       const me = useAuthStore.getState().user;
       if (me?.id === userId) {
         useRoomStore.getState().reset();
         return;
       }
       useRoomStore.getState().removePlayer(userId, reason, newHostId);
-    });
-    s.on('room:updated', ({ table }) => {
+    };
+    const handleRoomUpdated = ({ table }: any) => {
       useRoomStore.getState().setTable(table);
-    });
-    s.on('room:kicked', ({ reason }) => {
+    };
+    const handleRoomKicked = ({ reason }: any) => {
       useRoomStore.getState().setKicked(reason);
-    });
-    s.on('room:game_started', ({ game, table }) => {
+    };
+    const handleGameStarted = ({ game, table }: any) => {
       useRoomStore.getState().setGameStarted(game, table);
-    });
-    s.on('room:game_ended', ({ table }) => {
+    };
+    const handleGameEnded = ({ table }: any) => {
       useRoomStore.getState().setEnded(table);
-    });
+    };
 
-    // ---- Game events ----
-    s.on('game:spin_started', ({ spinnerId, durationMs }) => {
+    // ---- Game handlers ----
+    const handleSpinStarted = ({ spinnerId, durationMs }: any) => {
       useRoomStore.getState().setSpinStarted(spinnerId, durationMs);
-    });
-    s.on('game:spin_result', (data) => {
+    };
+    const handleSpinResult = (data: any) => {
       useRoomStore.getState().setSpinResult(data);
-    });
-    s.on('game:kissed', ({ fromId, toId, mutual }) => {
+    };
+    const handleKissed = ({ fromId, toId, mutual }: any) => {
       useRoomStore.getState().setKissed(fromId, toId, mutual);
-    });
-    s.on('game:rejected', ({ fromId, toId }) => {
+    };
+    const handleRejected = ({ fromId, toId }: any) => {
       useRoomStore.getState().setRejected(fromId, toId);
-    });
-    s.on('game:step_changed', ({ step, totalSteps, nextSpinnerId }) => {
+    };
+    const handleStepChanged = ({ step, totalSteps, nextSpinnerId }: any) => {
       useRoomStore.getState().setStep(step, totalSteps, nextSpinnerId);
-    });
-    s.on('game:truth_or_dare', ({ targetId, card, deadlineAt }) => {
+    };
+    const handleTruthOrDare = ({ targetId, card, deadlineAt }: any) => {
       useRoomStore.getState().setCard(targetId, card, deadlineAt);
-    });
+    };
 
     // ---- Chat ----
-    s.on('chat:message', (msg) => {
+    const handleChatMessage = (msg: any) => {
       const users = useRoomStore.getState().players;
       const sender = users.find((u) => u.userId === msg.senderId)?.user;
       useRoomStore.getState().addChat({
@@ -93,13 +104,13 @@ export function useRoomSocket() {
             ? '#3b82f6'
             : '#94c92e',
       });
-    });
+    };
 
     // ---- Errors ----
-    s.on('error', ({ message }) => {
+    const handleError = ({ message }: { message: string }) => {
       useRoomStore.getState().setError(message);
-    });
-    s.on('room:error', ({ message }) => {
+    };
+    const handleRoomError = ({ message }: { message: string }) => {
       useRoomStore.getState().addChat({
         userId: null,
         userName: 'Система',
@@ -107,44 +118,108 @@ export function useRoomSocket() {
         isSystem: true,
         color: '#e53935',
       });
-    });
+    };
 
     // Gift animation
-    s.on('gift:animate' as any, (data: any) => {
+    const handleGiftAnimate = (data: { fromId: number; toId: number; emoji: string; name: string }) => {
       useEconomyStore.getState().addFlyGift({
         fromId: data.fromId,
         toId: data.toId,
         emoji: data.emoji,
         name: data.name,
       });
-    });
+    };
 
-    // Player reconnect after network glitch
-    s.on('room:player_reconnected', ({ userId }: { userId: number }) => {
+    // Reconnection events
+    const handlePlayerReconnected = ({ userId }: { userId: number }) => {
       useRoomStore.getState().setPlayerStatus(userId, 'online');
-    });
-    s.on('room:player_disconnected', ({ userId }: { userId: number }) => {
+    };
+    const handlePlayerDisconnected = ({ userId }: { userId: number }) => {
       useRoomStore.getState().setPlayerStatus(userId, 'reconnecting');
-    });
+    };
 
     // Balance updates
-    s.on('user:balance_changed', async () => {
+    const handleBalanceChanged = async () => {
       try {
         const j = await api<{ ok: true; me: any }>('/shop/me');
         if (j.ok && j.me) {
           useAuthStore.setState({ user: j.me });
           useUserStore.getState().setMe(j.me);
-          try { localStorage.setItem('spinthe:user', JSON.stringify(j.me)); } catch {}
           try {
-            const [f, c, n] = await Promise.all([fetchFriends(), fetchConversations(), fetchNotifications()]);
+            localStorage.setItem('spinthe:user', JSON.stringify(j.me));
+          } catch {}
+          try {
+            const [f, c, n] = await Promise.all([
+              fetchFriends(),
+              fetchConversations(),
+              fetchNotifications(),
+            ]);
             useSocialStore.getState().setFriends(f);
             useSocialStore.getState().setConversations(c);
             useSocialStore.getState().setNotifications(n);
           } catch {}
         }
       } catch {}
-    });
-  }, []);
+    };
+
+    // Регистрация слушателей
+    s.on('room:joined', handleRoomJoined);
+    s.on('room:player_joined', handlePlayerJoined);
+    s.on('room:player_left', handlePlayerLeft);
+    s.on('room:updated', handleRoomUpdated);
+    s.on('room:kicked', handleRoomKicked);
+    s.on('room:game_started', handleGameStarted);
+    s.on('room:game_ended', handleGameEnded);
+
+    s.on('game:spin_started', handleSpinStarted);
+    s.on('game:spin_result', handleSpinResult);
+    s.on('game:kissed', handleKissed);
+    s.on('game:rejected', handleRejected);
+    s.on('game:step_changed', handleStepChanged);
+    s.on('game:truth_or_dare', handleTruthOrDare);
+
+    s.on('chat:message', handleChatMessage);
+
+    s.on('error', handleError);
+    s.on('room:error', handleRoomError);
+
+    s.on('gift:animate' as any, handleGiftAnimate);
+
+    s.on('room:player_reconnected', handlePlayerReconnected);
+    s.on('room:player_disconnected', handlePlayerDisconnected);
+
+    s.on('user:balance_changed', handleBalanceChanged);
+
+    // Очистка всех слушателей при размонтировании
+    return () => {
+      s.off('room:joined', handleRoomJoined);
+      s.off('room:player_joined', handlePlayerJoined);
+      s.off('room:player_left', handlePlayerLeft);
+      s.off('room:updated', handleRoomUpdated);
+      s.off('room:kicked', handleRoomKicked);
+      s.off('room:game_started', handleGameStarted);
+      s.off('room:game_ended', handleGameEnded);
+
+      s.off('game:spin_started', handleSpinStarted);
+      s.off('game:spin_result', handleSpinResult);
+      s.off('game:kissed', handleKissed);
+      s.off('game:rejected', handleRejected);
+      s.off('game:step_changed', handleStepChanged);
+      s.off('game:truth_or_dare', handleTruthOrDare);
+
+      s.off('chat:message', handleChatMessage);
+
+      s.off('error', handleError);
+      s.off('room:error', handleRoomError);
+
+      s.off('gift:animate' as any, handleGiftAnimate);
+
+      s.off('room:player_reconnected', handlePlayerReconnected);
+      s.off('room:player_disconnected', handlePlayerDisconnected);
+
+      s.off('user:balance_changed', handleBalanceChanged);
+    };
+  }, [user]);
 
   // ---------- API-методы ----------
   const createRoom = useCallback(

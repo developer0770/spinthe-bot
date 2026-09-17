@@ -39,10 +39,11 @@ import type {
 
 const DISCONNECT_GRACE_MS = 30_000; // 30 сек на переподключение
 const disconnectTimers = new Map<number, NodeJS.Timeout>();
-// Простой rate-limit на частые WS-события (чат, спин, действия)
+
+// Rate-limit по userId для защиты от обхода ограничений при смене сокета
 const wsLastEvent = new Map<string, number>();
-function wsThrottle(socketId: string, key: string, minMs: number): boolean {
-  const k = `${socketId}:${key}`;
+function wsThrottle(userId: number, key: string, minMs: number): boolean {
+  const k = `${userId}:${key}`;
   const now = Date.now();
   const last = wsLastEvent.get(k) || 0;
   if (now - last < minMs) return false;
@@ -94,6 +95,7 @@ export function initWebSocket(server: HttpServer) {
       clearTimeout(pending);
       disconnectTimers.delete(userId);
     }
+
     try {
       const current = await getCurrentTableForUser(userId);
       if (current) {
@@ -109,6 +111,7 @@ export function initWebSocket(server: HttpServer) {
           me: me!,
           slotIndex: current.players.find((p) => p.userId === userId)?.slotIndex ?? -1,
         });
+
         if (state) {
           // Восстанавливаем фазу игры
           const restoredStatus: 'waiting' | 'spinning' | 'choosing' | 'chatting' | 'finished' =
@@ -116,6 +119,7 @@ export function initWebSocket(server: HttpServer) {
             state.phase === 'spinning' ? 'spinning' :
             state.phase === 'choosing' ? 'choosing' :
             state.phase === 'truth_dare' ? 'chatting' : 'waiting';
+
           socket.emit('room:game_started', {
             game: {
               id: state.gameId,
@@ -129,6 +133,7 @@ export function initWebSocket(server: HttpServer) {
             },
             table: current,
           });
+
           // Отправляем актуальное состояние спина/карточки
           if (state.phase === 'spinning' && state.rotationDeg !== null) {
             socket.emit('game:spin_started', { spinnerId: state.spinnerId, durationMs: SPIN_DURATION_MS });
@@ -197,7 +202,7 @@ export function initWebSocket(server: HttpServer) {
     // ===== ROOM:JOIN =====
     socket.on('room:join', async (data, cb) => {
       try {
-        const result = await joinRoom(userId, { tableId: data?.tableId, code: data?.code });
+        const result = await joinRoom(userId, Number(data?.tableId ?? data));
         await attachToRoom(socket, result.table.id);
         const me = await getUserDTO(userId);
         socket.emit('room:joined', {
@@ -340,7 +345,7 @@ export function initWebSocket(server: HttpServer) {
 
     // ===== GAME:SPIN =====
     socket.on('game:spin', async () => {
-      if (!wsThrottle(socket.id, 'spin', 1000)) return;
+      if (!wsThrottle(userId, 'spin', 1000)) return;
       try {
         const tableId = socket.data.tableId;
         if (!tableId) return;
@@ -383,7 +388,7 @@ export function initWebSocket(server: HttpServer) {
 
     // ===== GAME:KISS =====
     socket.on('game:kiss', async () => {
-      if (!wsThrottle(socket.id, 'choice', 500)) return;
+      if (!wsThrottle(userId, 'choice', 500)) return;
       try {
         const tableId = socket.data.tableId;
         if (!tableId) return;
@@ -447,21 +452,23 @@ export function initWebSocket(server: HttpServer) {
     // ===== GAME:MESSAGE =====
     socket.on('game:message', async (data) => {
       try {
-        // rate-limit: не чаще 1 сообщения в 500мс, всего 30 в минуту
-        if (!wsThrottle(socket.id, 'chat', 500)) return;
+        if (!wsThrottle(userId, 'chat', 500)) return;
         const tableId = socket.data.tableId;
         if (!tableId) return;
-        // Всегда проверяем актуальный статус мута из БД (а не из кэша сокета)
+
         const me = await prisma.user.findUnique({ where: { id: userId }, select: { mutedUntil: true } });
         if (me?.mutedUntil && new Date(me.mutedUntil) > new Date()) {
           socket.emit('room:error', { code: 'muted', message: `Ты в муте до ${me.mutedUntil.toLocaleTimeString('ru-RU')}` });
           return;
         }
+
         const text = String(data?.text || '').trim().slice(0, 300);
         if (!text) return;
+
         const msg = await prisma.message.create({
           data: { tableId, senderId: userId, text, type: 'user' },
         });
+
         io.to(`table:${tableId}`).emit('chat:message', {
           id: msg.id,
           tableId,
@@ -492,9 +499,7 @@ export function initWebSocket(server: HttpServer) {
           text: data.text,
           stickerId: data.stickerId,
         });
-        // Отправителю (подтверждение)
         socket.emit('dm:message', msg as any);
-        // Получателю — в реальном времени
         const toSid = await redis.get(RKEY.userSocket(toId));
         if (toSid) io.to(toSid).emit('dm:message', msg as any);
         cb?.({ ok: true });
@@ -533,7 +538,7 @@ export function initWebSocket(server: HttpServer) {
       }
     });
 
-    // ===== GAME:GIFT (отправка подарка из игры) =====
+    // ===== GAME:GIFT =====
     socket.on('game:gift', async (data, cb?: (res: any) => void) => {
       try {
         if (!socket.data.tableId) { cb?.({ ok: false, error: 'not_in_room' }); return; }
@@ -546,51 +551,53 @@ export function initWebSocket(server: HttpServer) {
 
     // ===== DISCONNECT =====
     socket.on('disconnect', async () => {
-      console.log(`[ws] user ${userId} disconnected (grace ${DISCONNECT_GRACE_MS}ms)`);
-      await redis.del(RKEY.userSocket(userId));
-      const currentTable = socket.data.tableId;
+      try {
+        console.log(`[ws] user ${userId} disconnected (grace ${DISCONNECT_GRACE_MS}ms)`);
+        await redis.del(RKEY.userSocket(userId));
+        const currentTable = socket.data.tableId;
 
-      const existingTimer = disconnectTimers.get(userId);
-      if (existingTimer) clearTimeout(existingTimer);
+        const existingTimer = disconnectTimers.get(userId);
+        if (existingTimer) clearTimeout(existingTimer);
 
-      if (currentTable) {
-        // Уведомляем что отключился, но не выкидываем из БД сразу
-        socket.to(`table:${currentTable}`).emit('room:player_disconnected', { userId });
-        await socket.leave(`table:${currentTable}`);
+        if (currentTable) {
+          socket.to(`table:${currentTable}`).emit('room:player_disconnected', { userId });
+          await socket.leave(`table:${currentTable}`);
 
-        const timer = setTimeout(async () => {
-          try {
-            // Проверяем — не переподключился ли пользователь уже?
-            const sid = await redis.get(RKEY.userSocket(userId));
-            if (sid) {
-              // Подключился заново — не выкидываем
-              disconnectTimers.delete(userId);
-              return;
-            }
-            const { tableId, wasHost } = await leaveCurrentTable(userId);
-            disconnectTimers.delete(userId);
-            if (tableId) {
-              const newHost = await prisma.table.findUnique({
-                where: { id: tableId },
-                select: { hostId: true },
-              });
-              io.to(`table:${tableId}`).emit('room:player_left', {
-                userId,
-                reason: 'disconnect',
-                newHostId: wasHost ? newHost?.hostId : undefined,
-              });
-              const t = await prisma.table.findUnique({ where: { id: tableId } });
-              if (t) {
-                const dto = await toTableDTO(t);
-                io.to(`table:${tableId}`).emit('room:updated', { table: dto });
+          const timer = setTimeout(async () => {
+            try {
+              const sid = await redis.get(RKEY.userSocket(userId));
+              if (sid) return; // Игрок переподключился
+
+              const { tableId, wasHost } = await leaveCurrentTable(userId);
+              if (tableId) {
+                const newHost = await prisma.table.findUnique({
+                  where: { id: tableId },
+                  select: { hostId: true },
+                });
+                io.to(`table:${tableId}`).emit('room:player_left', {
+                  userId,
+                  reason: 'disconnect',
+                  newHostId: wasHost ? newHost?.hostId : undefined,
+                });
+                const t = await prisma.table.findUnique({ where: { id: tableId } });
+                if (t) {
+                  const dto = await toTableDTO(t);
+                  io.to(`table:${tableId}`).emit('room:updated', { table: dto });
+                }
               }
+            } catch (e) {
+              console.error('[ws] delayed leave err:', e);
+            } finally {
+              // Очистка таймера в блокирующем finally для предотвращения утечек памяти
+              disconnectTimers.delete(userId);
             }
-          } catch (e) {
-            console.error('[ws] delayed leave err:', e);
-          }
-        }, DISCONNECT_GRACE_MS);
-        disconnectTimers.set(userId, timer);
-        socket.data.tableId = null;
+          }, DISCONNECT_GRACE_MS);
+
+          disconnectTimers.set(userId, timer);
+          socket.data.tableId = null;
+        }
+      } catch (err) {
+        console.error('[ws] disconnect global error:', err);
       }
     });
   });
@@ -625,7 +632,6 @@ async function detachFromRoom(
 type AdvanceResult = Awaited<ReturnType<typeof completeCard>>;
 type ChoiceRes = Awaited<ReturnType<typeof submitChoice>>;
 
-/** Унифицированно послать результат выбора (целовать/отказать) с переходом на след.шаг или карточку. */
 async function broadcastChoiceResult(tableId: number, res: ChoiceRes) {
   if (res.ended) {
     await emitEnd(tableId);

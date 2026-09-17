@@ -75,6 +75,24 @@ interface RoomState {
   reset: () => void;
 }
 
+// Вспомогательная функция для синхронизации статуса сервера и фазы на клиенте
+const mapServerStatusToGamePhase = (status?: string): GamePhase => {
+  switch (status) {
+    case 'spinning':
+      return 'spinning';
+    case 'choosing':
+      return 'choosing';
+    case 'truth_or_dare':
+    case 'truth_dare':
+    case 'chatting':
+      return 'truth_dare';
+    case 'ended':
+      return 'ended';
+    default:
+      return 'awaiting_spin';
+  }
+};
+
 const initial: Pick<RoomState,
   | 'phase' | 'table' | 'game' | 'gamePhase' | 'mySlotIndex' | 'players'
   | 'currentSpinnerId' | 'currentTargetId' | 'bottleRotation' | 'isSpinning'
@@ -106,18 +124,22 @@ export const useRoomStore = create<RoomState>((set) => ({
   setJoined: ({ table, game, players, slotIndex }) => {
     const playerConn: Record<number, ConnectionStatus> = {};
     for (const p of players) playerConn[p.userId] = 'online';
+
+    // Восстанавливаем сохраненный угол бутылочки из GameDTO, если он есть
+    const restoredRotation = (game as unknown as { rotationDeg?: number })?.rotationDeg ?? 0;
+
     set({
       table,
       game,
       players,
       mySlotIndex: slotIndex,
       phase: table.status === 'playing' ? 'playing' : 'lobby',
-      gamePhase: table.status === 'playing' ? 'awaiting_spin' : 'awaiting_spin',
+      gamePhase: game ? mapServerStatusToGamePhase(game.status) : 'awaiting_spin',
       currentSpinnerId: game?.currentSpinnerId ?? table.hostId,
-      currentTargetId: null,
-      isSpinning: false,
+      currentTargetId: game?.currentTargetId ?? null,
+      isSpinning: game?.status === 'spinning',
       errorMsg: null,
-      bottleRotation: 0,
+      bottleRotation: restoredRotation,
       playerConn,
     });
   },
@@ -141,22 +163,23 @@ export const useRoomStore = create<RoomState>((set) => ({
     }),
 
   setGame: (g) =>
-    set({
+    set((s) => ({
       game: g,
       phase: g ? 'playing' : 'lobby',
-      gamePhase: g ? 'awaiting_spin' : 'awaiting_spin',
-    }),
+      gamePhase: g ? mapServerStatusToGamePhase(g.status) : 'awaiting_spin',
+      bottleRotation: (g as unknown as { rotationDeg?: number })?.rotationDeg ?? s.bottleRotation,
+    })),
 
   setGameStarted: (g, t) =>
     set((s) => ({
       game: g,
       table: t,
       phase: 'playing',
-      gamePhase: 'awaiting_spin',
+      gamePhase: mapServerStatusToGamePhase(g.status),
       currentSpinnerId: g.currentSpinnerId,
-      currentTargetId: null,
-      isSpinning: false,
-      bottleRotation: 0,
+      currentTargetId: g.currentTargetId ?? null,
+      isSpinning: g.status === 'spinning',
+      bottleRotation: (g as unknown as { rotationDeg?: number })?.rotationDeg ?? s.bottleRotation,
       card: null,
       choiceDeadlineAt: null,
       chat: [
@@ -181,7 +204,7 @@ export const useRoomStore = create<RoomState>((set) => ({
       spinEndsAt: Date.now() + durationMs,
       card: null,
       choiceDeadlineAt: null,
-      bottleRotation: s.bottleRotation + 360 * 6 + Math.random() * 360, // будет уточнено в spin_result
+      bottleRotation: s.bottleRotation + 360 * 6 + Math.random() * 360,
     })),
 
   setSpinResult: (r) =>
@@ -197,8 +220,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   setKissed: (fromId, toId, mutual) =>
     set({
       kissCelebration: { fromId, toId, mutual },
-      // Карточка придёт отдельно (truth_or_dare)
-      gamePhase: 'choosing', // до получения карты
+      gamePhase: 'choosing',
     }),
 
   setRejected: () => set({ kissCelebration: null }),
@@ -332,7 +354,6 @@ export const useRoomStore = create<RoomState>((set) => ({
           : status === 'online'
           ? `${p?.user.name || 'Игрок'} снова в сети!`
           : null;
-      // Не добавляем чат если игрок не найден
       return {
         playerConn: { ...s.playerConn, [userId]: status },
         chat: msg && p
