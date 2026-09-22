@@ -14,7 +14,7 @@ import {
 type TxClient = Prisma.TransactionClient;
 type TablePlayerLike = { joinedAt: Date; userId: number; id: number; tableId: number; slotIndex: number; status: string; leftAt: Date | null };
 
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // без похожих 0/O/1/I
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 /** Сгенерировать уникальный 6-значный буквенно-цифровой код комнаты. */
 export async function generateRoomCode(len = 6): Promise<string> {
@@ -26,11 +26,10 @@ export async function generateRoomCode(len = 6): Promise<string> {
     const exists = await prisma.table.findUnique({ where: { roomCode: code }, select: { id: true } });
     if (!exists) return code;
   }
-  // fallback на числовой с таймстампом
   return String(Date.now()).slice(-6);
 }
 
-/** Найти ближайший свободный номер стола (1..9999). */
+/** Найти ближайший свободный номер стола (101..9999). */
 async function nextTableNumber(): Promise<number> {
   const last = await prisma.table.findFirst({
     orderBy: { tableNumber: 'desc' },
@@ -39,9 +38,7 @@ async function nextTableNumber(): Promise<number> {
   return (last?.tableNumber ?? 100) + 1;
 }
 
-/**
- * Получить все активные слоты игроков стола (status='active'), отсортированные по slotIndex.
- */
+/** Получить все активные слоты игроков стола (status='active'). */
 export async function getTablePlayers(tableId: number): Promise<TablePlayerSlotDTO[]> {
   const tp = await prisma.tablePlayer.findMany({
     where: { tableId, status: 'active' },
@@ -114,7 +111,7 @@ export async function createRoom(
   const totalRounds = [3, 5, 10, 15].includes(opts.totalRounds) ? opts.totalRounds : 5;
   const name = (opts.name || 'Комната').trim().slice(0, 32) || `Стол #${Date.now().toString().slice(-4)}`;
 
-  // Если пользователь уже в какой-то комнате — выкидываем сначала
+  // Очищаем предыдущие активные подключения пользователя
   await leaveCurrentTable(hostId);
 
   const code = await generateRoomCode();
@@ -148,7 +145,7 @@ export async function createRoom(
   return { table: tableDTO, players: tableDTO.players, slotIndex: 0 };
 }
 
-/** Удалить пользователя из его текущего активного стола (если есть). */
+/** Удалить пользователя из его текущего активного стола. */
 export async function leaveCurrentTable(userId: number): Promise<{ tableId: number | null; wasHost: boolean }> {
   const tp = await prisma.tablePlayer.findFirst({
     where: { userId, status: 'active' },
@@ -170,13 +167,11 @@ export async function leaveCurrentTable(userId: number): Promise<{ tableId: numb
   if (table) {
     const remaining = table.players.length;
     if (remaining === 0) {
-      // Закрываем пустую комнату
       await prisma.table.update({
         where: { id: table.id },
         data: { status: 'closed', closedAt: new Date() },
       });
     } else if (wasHost) {
-      // Передаём хост старейшему игроку
       const newHost = table.players.reduce((a: TablePlayerLike, b: TablePlayerLike) => (a.joinedAt <= b.joinedAt ? a : b));
       await prisma.table.update({
         where: { id: table.id },
@@ -188,7 +183,7 @@ export async function leaveCurrentTable(userId: number): Promise<{ tableId: numb
   return { tableId: tp.tableId, wasHost };
 }
 
-/** Присоединить пользователя к существующей комнате по id или коду. */
+/** Присоединить пользователя к комнате. */
 export async function joinRoom(
   userId: number,
   target: { tableId?: number; code?: string },
@@ -197,90 +192,126 @@ export async function joinRoom(
     throw new RoomError('no_target', 'Укажите код или номер стола');
   }
 
-  let table = target.tableId
-    ? await prisma.table.findUnique({
-        where: { id: target.tableId },
-        include: { players: { where: { status: 'active' } } },
-      })
-    : await prisma.table.findUnique({
-        where: { roomCode: target.code!.toUpperCase() },
-        include: { players: { where: { status: 'active' } } },
-      });
+  const table = target.tableId
+    ? await prisma.table.findUnique({ where: { id: target.tableId } })
+    : await prisma.table.findUnique({ where: { roomCode: target.code!.toUpperCase() } });
 
   if (!table) throw new RoomError('not_found', 'Комната не найдена');
   if (table.status === 'closed') throw new RoomError('closed', 'Комната закрыта');
   if (table.status === 'playing') throw new RoomError('in_progress', 'Игра уже идёт');
 
-  // Проверяем, есть ли уже запись этого игрока за ДАННЫМ столом (в любом статусе)
-  const existingInThisTable = await prisma.tablePlayer.findUnique({
-    where: { tableId_userId: { tableId: table.id, userId } },
+  // 1. Покидаем все остальные столы
+  await prisma.tablePlayer.updateMany({
+    where: {
+      userId,
+      tableId: { not: table.id },
+      status: 'active',
+    },
+    data: { status: 'left', leftAt: new Date() },
   });
 
-  // Выходим из ВСЕХ ДРУГИХ столов, за которыми пользователь числился как active
-  await leaveCurrentTable(userId);
-
-  // Переполучаем список активных игроков стола после возможного leaveCurrentTable
-  const activePlayers = await getTablePlayers(table.id);
-
-  // Проверяем заполненность (если игрок НЕ был уже активным за этим столом)
-  const isAlreadyActiveInThisTable = activePlayers.some((p) => p.userId === userId);
-  if (!isAlreadyActiveInThisTable && activePlayers.length >= table.maxPlayers) {
-    throw new RoomError('full', 'Комната заполнена');
-  }
-
-  // Находим свободное место за столом
-  const slotIndex = findFreeSlot(
-    isAlreadyActiveInThisTable ? activePlayers.filter((p) => p.userId !== userId) : activePlayers,
-    table.maxPlayers,
-  );
-  if (slotIndex === null) throw new RoomError('full', 'Нет свободных мест');
-
-  if (existingInThisTable) {
-    // ЕСЛИ ЗАПИСЬ УЖЕ ЕСТЬ В БАЗЕ — ОБНОВЛЯЕМ (без создания дубликата!)
-    await prisma.tablePlayer.update({
-      where: { id: existingInThisTable.id },
-      data: {
-        status: 'active',
-        slotIndex,
-        leftAt: null,
-      },
+  // 2. Выполняем транзакцию для предотвращения гонки состояний (Race Condition)
+  return await prisma.$transaction(async (tx: TxClient) => {
+    // Получаем текущих активных игроков транзакционно
+    const activeTablePlayers = await tx.tablePlayer.findMany({
+      where: { tableId: table.id, status: 'active' },
+      orderBy: { slotIndex: 'asc' },
     });
-  } else {
-    // СОЗДАЕМ ТОЛЬКО ЕСЛИ ЗАПИСИ РАНЕЕ НЕ БЫЛО
-    await prisma.tablePlayer.create({
-      data: {
-        tableId: table.id,
-        userId,
-        slotIndex,
-        status: 'active',
-      },
-    });
-  }
 
-  const updatedTable = await prisma.table.findUnique({ where: { id: table.id } });
-  const tableDTO = await toTableDTO(updatedTable!);
-  return { table: tableDTO, players: tableDTO.players, slotIndex };
+    const isAlreadyActive = activeTablePlayers.some((p) => p.userId === userId);
+
+    if (!isAlreadyActive && activeTablePlayers.length >= table.maxPlayers) {
+      throw new RoomError('full', 'Комната заполнена');
+    }
+
+    // Ищем доступный слот
+    const takenSlots = new Set(
+      activeTablePlayers.filter((p) => p.userId !== userId).map((p) => p.slotIndex)
+    );
+    
+    let slotIndex: number | null = null;
+    for (let i = 0; i < table.maxPlayers; i++) {
+      if (!takenSlots.has(i)) {
+        slotIndex = i;
+        break;
+      }
+    }
+
+    if (slotIndex === null) throw new RoomError('full', 'Нет свободных мест');
+
+    // Проверяем наличие любой существующей записи для этой пары (tableId, userId)
+    const existingInThisTable = await tx.tablePlayer.findUnique({
+      where: { tableId_userId: { tableId: table.id, userId } },
+    });
+
+    if (existingInThisTable) {
+      await tx.tablePlayer.update({
+        where: { id: existingInThisTable.id },
+        data: {
+          status: 'active',
+          slotIndex,
+          leftAt: null,
+        },
+      });
+    } else {
+      await tx.tablePlayer.create({
+        data: {
+          tableId: table.id,
+          userId,
+          slotIndex,
+          status: 'active',
+        },
+      });
+    }
+
+    const updatedTable = await tx.table.findUnique({ where: { id: table.id } });
+    const tableDTO = await toTableDTO(updatedTable!);
+    return { table: tableDTO, players: tableDTO.players, slotIndex };
+  });
 }
 
-/** Матчмейкинг: найти любую публичную ожидающую неполную комнату, иначе бросить ошибку no_room. */
+/** Улучшенный Матчмейкинг: искать новые публичные комнаты и не возвращать в старые. */
 export async function joinRandomRoom(userId: number): Promise<JoinRoomResult> {
+  // 1. Принудительно закрываем все "зависшие" сессии пользователя, кроме текущей игры
+  await prisma.tablePlayer.updateMany({
+    where: {
+      userId,
+      table: { status: { in: ['waiting', 'closed'] } },
+    },
+    data: { status: 'left', leftAt: new Date() },
+  });
+
+  // 2. Ищем доступные комнаты, исключая те, откуда пользователя кикнули
   const candidates = await prisma.table.findMany({
     where: {
       isPrivate: false,
       status: 'waiting',
+      players: {
+        none: {
+          userId,
+          status: 'kicked', // Не закидываем туда, где игрок забанен
+        },
+      },
     },
     include: { players: { where: { status: 'active' } } },
     orderBy: { createdAt: 'desc' },
     take: 20,
   });
 
-  for (const t of candidates as any[]) {
+  // 3. Перебираем столы и подсаживаем к первому подходящему
+  for (const t of candidates) {
     if (t.players.length >= t.maxPlayers) continue;
-    if (t.players.length < 1) continue; // не подсаживаем в совсем пустые (там нет хоста/ботов)
-    return joinRoom(userId, { tableId: t.id });
+    if (t.players.length < 1) continue; 
+    try {
+      return await joinRoom(userId, { tableId: t.id });
+    } catch (e) {
+      // Если комната успела заполниться во время гонки запросов, переходим к следующей
+      continue;
+    }
   }
 
-  throw new RoomError('no_room', 'Нет свободных публичных комнат. Создай свою!');
+  // 4. Если свободных столов нет — автоматически создаем новый
+  return createRoom(userId, { isPrivate: false, maxPlayers: 8, totalRounds: 5 });
 }
 
 /** Кик игрока (только хост). */
@@ -309,7 +340,7 @@ export async function kickPlayer(
   return { tableId: tp.tableId };
 }
 
-/** Старт игры (только хост, нужно минимум 2 игрока). */
+/** Старт игры (только хост). */
 export async function startGame(hostId: number): Promise<{ gameId: string; tableId: number; table: TableDTO }> {
   const tp = await prisma.tablePlayer.findFirst({
     where: { userId: hostId, status: 'active' },
@@ -327,7 +358,6 @@ export async function startGame(hostId: number): Promise<{ gameId: string; table
       currentStep: 0,
       status: 'waiting',
       startedAt: new Date(),
-      // Первый крутящий — хост
       currentSpinnerId: hostId,
     },
   });
@@ -338,12 +368,11 @@ export async function startGame(hostId: number): Promise<{ gameId: string; table
 
   const updatedTable = await prisma.table.findUnique({ where: { id: tp.tableId } });
   const tableDTO = await toTableDTO(updatedTable!);
-  // Инициализируем состояние игры в Redis
   await initGame(game.id, tp.tableId, hostId, tp.table.totalRounds);
   return { gameId: game.id, tableId: tp.tableId, table: tableDTO };
 }
 
-/** Список публичных комнат для отображения в меню. */
+/** Список публичных комнат. */
 export async function listPublicRooms(limit = 30): Promise<PublicRoomDTO[]> {
   const tables = await prisma.table.findMany({
     where: { isPrivate: false, status: { in: ['waiting', 'playing'] } },
@@ -367,7 +396,7 @@ export async function listPublicRooms(limit = 30): Promise<PublicRoomDTO[]> {
   }));
 }
 
-/** Проверить, находится ли пользователь в какой-то комнате, вернуть её DTO если да. */
+/** Проверить текущий стол пользователя. */
 export async function getCurrentTableForUser(userId: number): Promise<TableDTO | null> {
   const tp = await prisma.tablePlayer.findFirst({
     where: { userId, status: 'active' },
@@ -378,7 +407,6 @@ export async function getCurrentTableForUser(userId: number): Promise<TableDTO |
   return toTableDTO(t);
 }
 
-/** Ошибка в логике комнат с кодом. */
 export class RoomError extends Error {
   code: string;
   constructor(code: string, message: string) {
