@@ -90,6 +90,7 @@ model User {
   dmSent          DirectMessage[] @relation("dmSender")
   dmReceived      DirectMessage[] @relation("dmReceiver")
   notifications   Notification[]
+  favoriteTracks  UserFavoriteTrack[]
 
   @@index([telegramId])
   @@index([totalKisses])
@@ -548,4 +549,35 @@ model Report {
 
   @@index([status, createdAt])
   @@index([reportedId])
+}
+
+// ====================== MEDIA ======================
+enum MediaType {
+  AUDIO
+  VIDEO
+}
+
+model Track {
+  id        Int      @id @default(autoincrement())
+  title     String
+  artist    String
+  coverUrl  String?
+  mediaUrl  String
+  duration  String
+  type      MediaType
+  isPopular Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  favoritedBy UserFavoriteTrack[]
+}
+
+model UserFavoriteTrack {
+  userId    Int
+  trackId   Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([userId, trackId])
 }

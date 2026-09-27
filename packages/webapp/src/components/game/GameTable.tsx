@@ -13,6 +13,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useRoomSocket } from '../../hooks/useRoomSocket';
 import { useEconomyStore } from '../../store/economyStore';
 import { getFrameImageUrl, getFrameScaleClass, handleFrameError } from '../../utils/frameUtils';
+import MusicModal from './MusicModal';
+import BackgroundPlayer from './BackgroundPlayer';
 
 interface Props {
   onLeave?: () => void;
@@ -43,6 +45,7 @@ export default function GameTable({ onLeave }: Props) {
   const flyGifts = useEconomyStore((s) => s.flyGifts);
   const removeFlyGift = useEconomyStore((s) => s.removeFlyGift);
   const [actionsFor, setActionsFor] = useState<{ userId: number; name: string; isMe: boolean } | null>(null);
+  const [musicModal, setMusicModal] = useState<{ open: boolean, type: 'AUDIO'|'VIDEO' }>({ open: false, type: 'AUDIO' });
 
   useEffect(() => {
     if (kiss) {
@@ -281,6 +284,25 @@ export default function GameTable({ onLeave }: Props) {
         </div>
       </div>
 
+      {/* Фоновый плеер */}
+      <BackgroundPlayer />
+
+      {/* Кнопки Музыки/Видео справа */}
+      <div className="fixed right-4 bottom-52 flex flex-col gap-3 z-40">
+        <button
+          onClick={() => setMusicModal({ open: true, type: 'VIDEO' })}
+          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"
+        >
+          <span className="text-xl">🎬🎵</span>
+        </button>
+        <button
+          onClick={() => setMusicModal({ open: true, type: 'AUDIO' })}
+          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"
+        >
+          <span className="text-xl">🎵</span>
+        </button>
+      </div>
+
       {/* Чат и панель действий */}
       <div className="fixed bottom-10 left-0 right-0 z-30">
         <ChatPanel />
@@ -301,6 +323,12 @@ export default function GameTable({ onLeave }: Props) {
           />
         </div>
       </div>
+
+      <MusicModal
+        open={musicModal.open}
+        type={musicModal.type}
+        onClose={() => setMusicModal({ ...musicModal, open: false })}
+      />
 
       {/* Карточка Правда/Действие */}
       <AnimatePresence>

@@ -64,6 +64,9 @@ export function useRoomSocket() {
     const handleGameEnded = ({ table }: any) => {
       useRoomStore.getState().setEnded(table);
     };
+    const handleMediaStarted = ({ track, startedAt, playedByUserId }: any) => {
+      useRoomStore.getState().setMedia({ track, startedAt, playedByUserId });
+    };
 
     // ---- Game handlers ----
     const handleSpinStarted = ({ spinnerId, durationMs }: any) => {
@@ -170,6 +173,7 @@ export function useRoomSocket() {
     s.on('room:kicked', handleRoomKicked);
     s.on('room:game_started', handleGameStarted);
     s.on('room:game_ended', handleGameEnded);
+    s.on('room:media_started', handleMediaStarted);
 
     s.on('game:spin_started', handleSpinStarted);
     s.on('game:spin_result', handleSpinResult);
@@ -199,6 +203,7 @@ export function useRoomSocket() {
       s.off('room:kicked', handleRoomKicked);
       s.off('room:game_started', handleGameStarted);
       s.off('room:game_ended', handleGameEnded);
+      s.off('room:media_started', handleMediaStarted);
 
       s.off('game:spin_started', handleSpinStarted);
       s.off('game:spin_result', handleSpinResult);
@@ -349,6 +354,11 @@ export function useRoomSocket() {
     s.emit('game:ready');
   }, []);
 
+  const selectMedia = useCallback((trackId: number) => {
+    const s = getSocket();
+    s.emit('room:select_media', { trackId });
+  }, []);
+
   return {
     createRoom,
     joinByCode,
@@ -363,6 +373,7 @@ export function useRoomSocket() {
     kiss,
     reject,
     ready,
+    selectMedia,
     socket: socketRef.current,
     user,
   };

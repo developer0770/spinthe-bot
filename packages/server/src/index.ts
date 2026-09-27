@@ -15,6 +15,7 @@ import friendsRoutes from './modules/friends/friends.routes';
 import dmRoutes from './modules/chat/dm.routes';
 import shopRoutes from './modules/shop/shop.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import musicRoutes from './modules/music/music.routes';
 
 async function bootstrap() {
   const app = express();
@@ -82,6 +83,7 @@ async function bootstrap() {
   app.use('/api/leaderboard', shopRoutes); // алиас для leaderboard
   app.use('/api/economy', shopRoutes);    // алиас для daily/inventory
   app.use('/api/admin', adminRoutes);
+  app.use('/api/music', musicRoutes);
 
   // 404 только для несуществующих /api/* маршрутов
   app.use('/api', (_req, res) => {

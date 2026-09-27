@@ -28,6 +28,12 @@ interface TruthOrDareCard {
   deadlineAt: number;
 }
 
+interface MediaState {
+  track: { id: number; title: string; artist: string; coverUrl?: string; mediaUrl: string; duration: string; type: 'AUDIO' | 'VIDEO' };
+  startedAt: number;
+  playedByUserId: number;
+}
+
 interface RoomState {
   phase: RoomPhase;
   table: TableDTO | null;
@@ -48,6 +54,7 @@ interface RoomState {
   kissCelebration: { fromId: number; toId: number; mutual: boolean } | null;
   /** userId -> connection status (для отображения реконнекта) */
   playerConn: Record<number, ConnectionStatus>;
+  media: MediaState | null;
 
   setJoined: (data: {
     table: TableDTO;
@@ -57,6 +64,7 @@ interface RoomState {
   }) => void;
   setTable: (t: TableDTO) => void;
   setGame: (g: GameDTO | null) => void;
+  setMedia: (m: MediaState | null) => void;
   setGameStarted: (g: GameDTO, t: TableDTO) => void;
   setSpinStarted: (spinnerId: number, durationMs: number) => void;
   setSpinResult: (r: SpinResultDTO) => void;
@@ -116,10 +124,13 @@ const initial: Pick<RoomState,
   errorMsg: null,
   kissCelebration: null,
   playerConn: {},
+  media: null,
 };
 
 export const useRoomStore = create<RoomState>((set) => ({
   ...initial,
+
+  setMedia: (m) => set({ media: m }),
 
   setJoined: ({ table, game, players, slotIndex }) => {
     const playerConn: Record<number, ConnectionStatus> = {};

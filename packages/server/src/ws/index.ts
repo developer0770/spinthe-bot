@@ -343,6 +343,28 @@ export function initWebSocket(server: HttpServer) {
       }
     });
 
+    // ===== ROOM:SELECT_MEDIA =====
+    socket.on('room:select_media', async (data, cb) => {
+      try {
+        const { trackId } = data;
+        const tableId = socket.data.tableId;
+        if (!tableId) {
+           throw new Error('Not in room');
+        }
+        const track = await prisma.track.findUnique({ where: { id: trackId } });
+        if (!track) throw new Error('Track not found');
+        
+        io.to(`table:${tableId}`).emit('room:media_started', {
+          track,
+          startedAt: Date.now(),
+          playedByUserId: userId,
+        });
+        cb?.({ ok: true });
+      } catch (e: any) {
+         cb?.({ ok: false, error: e?.message });
+      }
+    });
+
     // ===== GAME:SPIN =====
     socket.on('game:spin', async () => {
       if (!wsThrottle(userId, 'spin', 1000)) return;

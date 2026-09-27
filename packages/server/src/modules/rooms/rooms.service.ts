@@ -402,7 +402,7 @@ export async function getCurrentTableForUser(userId: number): Promise<TableDTO |
     where: { userId, status: 'active' },
   });
   if (!tp) return null;
-  const t = await prisma.table.findUnique({ where: { id: tp.tableId } });
+  const t = await prisma.table.findUnique({ where: { id: tp.tableId } });  
   if (!t) return null;
   return toTableDTO(t);
 }

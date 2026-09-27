@@ -26,6 +26,7 @@ export interface ClientToServerEvents {
   'room:kick': (data: { userId: number }, cb?: (res: { ok: true } | { ok: false; error: string; code?: string }) => void) => void;
   'room:start': (cb?: (res: { ok: true; gameId: string } | { ok: false; error: string; code?: string }) => void) => void;
   'room:invite_info': () => void;
+  'room:select_media': (data: { trackId: number }, cb?: (res: { ok: true } | { ok: false; error: string }) => void) => void;
 
   // ---------- Game (реализуются в шаге 6, заглушки типов) ----------
   'game:spin': () => void;
@@ -66,6 +67,7 @@ export interface ServerToClientEvents {
   'room:game_started': (data: { game: GameDTO; table: TableDTO }) => void;
   'room:game_ended': (data: { results: unknown[]; table: TableDTO }) => void;
   'room:error': (data: { code: string; message: string }) => void;
+  'room:media_started': (data: { track: { id: number; title: string; artist: string; coverUrl?: string; mediaUrl: string; duration: string; type: 'AUDIO' | 'VIDEO' }; startedAt: number; playedByUserId: number }) => void;
 
   // ---------- Game ----------
   'game:spin_started': (data: { spinnerId: number; durationMs: number }) => void;
