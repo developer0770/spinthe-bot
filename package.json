@@ -11,11 +11,13 @@
     "dev": "concurrently -n web,server -c green,blue \"npm run dev -w packages/webapp\" \"npm run dev -w packages/server\"",
     "dev:web": "npm run dev -w packages/webapp",
     "dev:server": "npm run dev -w packages/server",
-    "build": "npm run prisma:generate && npm run build -w packages/webapp && npm run build -w packages/server",
+    "build": "npm run build -w packages/shared && npm run prisma:generate && npm run build -w packages/webapp && npm run build -w packages/server",
+    "start": "node packages/server/dist/packages/server/src/index.js",
     "build:web": "npm run build -w packages/webapp",
     "build:server": "npm run build -w packages/server",
     "prisma:generate": "npm run prisma:generate -w packages/server",
-    "prisma:migrate": "npm run prisma:migrate -w packages/server"
+    "prisma:migrate": "npm run prisma:migrate -w packages/server",
+    "test:redis": "npm run test:redis -w packages/server"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

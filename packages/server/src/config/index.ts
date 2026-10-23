@@ -57,6 +57,31 @@ export const config = {
   webAppUrl: process.env.WEBAPP_URL || '*',
 };
 
-if (config.isProd && !process.env.BOT_TOKEN) {
-  console.warn('[config] BOT_TOKEN is not set — Telegram initData validation will fail!');
+if (config.isProd) {
+  const requiredProductionVars = [
+    'BOT_TOKEN',
+    'JWT_SECRET',
+    'DATABASE_URL',
+    'REDIS_URL',
+    'WEBAPP_URL',
+    'CORS_ORIGIN',
+  ];
+
+  for (const key of requiredProductionVars) {
+    if (!process.env[key]?.trim()) {
+      throw new Error(`[config] ${key} is required in production`);
+    }
+  }
+
+  if (process.env.JWT_SECRET === 'dev-secret-change-me') {
+    throw new Error('[config] Default JWT_SECRET is forbidden in production');
+  }
+
+  if (process.env.CORS_ORIGIN?.trim() === '*') {
+    throw new Error('[config] Wildcard CORS_ORIGIN is forbidden in production');
+  }
+
+  if (!process.env.WEBAPP_URL?.startsWith('https://')) {
+    throw new Error('[config] WEBAPP_URL must use HTTPS in production');
+  }
 }

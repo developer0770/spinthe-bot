@@ -211,7 +211,7 @@ export async function joinRoom(
   });
 
   // 2. Выполняем транзакцию для предотвращения гонки состояний (Race Condition)
-  return await prisma.$transaction(async (tx: TxClient) => {
+  const joined = await prisma.$transaction(async (tx: TxClient) => {
     // Получаем текущих активных игроков транзакционно
     const activeTablePlayers = await tx.tablePlayer.findMany({
       where: { tableId: table.id, status: 'active' },
@@ -265,9 +265,11 @@ export async function joinRoom(
     }
 
     const updatedTable = await tx.table.findUnique({ where: { id: table.id } });
-    const tableDTO = await toTableDTO(updatedTable!);
-    return { table: tableDTO, players: tableDTO.players, slotIndex };
+    return { updatedTable: updatedTable!, slotIndex };
   });
+
+  const tableDTO = await toTableDTO(joined.updatedTable);
+  return { table: tableDTO, players: tableDTO.players, slotIndex: joined.slotIndex };
 }
 
 /** Улучшенный Матчмейкинг: искать новые публичные комнаты и не возвращать в старые. */

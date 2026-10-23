@@ -91,7 +91,7 @@ async function bootstrap() {
   });
 
   // Раздача статики собранного фронтенда
-  const webappDistPath = path.resolve(__dirname, '../../webapp/dist');
+  const webappDistPath = path.resolve(process.cwd(), 'packages/webapp/dist');
   app.use(express.static(webappDistPath));
 
   // Возвращаем index.html для всех SPA маршрутов (Telegram Mini App)

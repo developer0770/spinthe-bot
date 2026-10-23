@@ -43,7 +43,7 @@ export default function RoomLobby({ onLeave, onStart }: Props) {
 
   const handleCopyCode = async () => {
     hapticSelect();
-    const url = `https://t.me/share/url?url=t.me/spinthe_bot?start=room_${table.roomCode}&text=Присоединяйся к моей комнате в «Целуй и Знакомься»! Код: ${table.roomCode}`;
+    const url = `https://t.me/share/url?url=t.me/SpinTheBottleVerseBot?start=room_${table.roomCode}&text=Присоединяйся к моей комнате в «Целуй и Знакомься»! Код: ${table.roomCode}`;
     try {
       await navigator.clipboard.writeText(table.roomCode);
       setCopied(true);

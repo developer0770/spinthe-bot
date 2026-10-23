@@ -10,10 +10,13 @@ import { config } from '../config';
  * - rate limiting
  * - индикатора "печатает…"
  */
+const isTls = config.redis.url.startsWith('rediss://');
+
 export const redis = new Redis(config.redis.url, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
   lazyConnect: false,
+  ...(isTls ? { tls: { rejectUnauthorized: true } } : {}),
   retryStrategy: (times: number) => {
     const delay = Math.min(times * 200, 5000);
     return delay;
@@ -25,6 +28,19 @@ redis.on('ready', () => console.log('[redis] ready'));
 redis.on('error', (err: Error) => console.error('[redis] error:', err.message));
 redis.on('close', () => console.warn('[redis] connection closed'));
 redis.on('reconnecting', (ms: number) => console.log(`[redis] reconnecting in ${ms}ms...`));
+
+// Корректное завершение соединения при остановке сервера
+const gracefulShutdown = async () => {
+  try {
+    await redis.quit();
+  } catch {
+    redis.disconnect();
+  }
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('beforeExit', gracefulShutdown);
 
 // Вспомогательные ключи
 export const RKEY = {

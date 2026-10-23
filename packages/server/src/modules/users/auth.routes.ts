@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { config } from '../../config';
 import { findOrCreateTelegramUser } from './users.service';
@@ -15,8 +15,10 @@ const bodySchema = z.object({
  * Определяет, можно ли использовать dev-fallback для авторизации.
  * Разрешено ТОЛЬКО в development режиме при установленном плейсхолдерном BOT_TOKEN.
  */
-function isDevFallbackAllowed(): boolean {
+function isDevFallbackAllowed(req: Request): boolean {
   if (config.nodeEnv !== 'development') return false;
+  const ip = req.ip || req.socket.remoteAddress || '';
+  if (ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1') return false;
   const token = config.telegram.botToken;
   if (!token) return true;
   // Плейсхолдерные токены из примеров (вида "000000:AAExample...") — включают fallback
@@ -46,7 +48,7 @@ router.post('/telegram', async (req, res) => {
   let parsed: ParsedInitData | null = validateAndParseInitData(initData);
 
   // Dev-fallback только в development режиме с невалидным (плейсхолдерным) BOT_TOKEN
-  if (!parsed && isDevFallbackAllowed()) {
+  if (!parsed && isDevFallbackAllowed(req)) {
     console.warn('[auth] initData validation failed, using DEV fallback (safe because BOT_TOKEN is placeholder in dev mode)');
     // Поддержка имён, присланных с клиента в dev-режиме
     try {

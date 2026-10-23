@@ -5,6 +5,7 @@ import {
   AppSocket,
   isListenersBound,
   markListenersBound,
+  unmarkListenersBound,
 } from '../socket/client';
 import { useRoomStore } from '../store/roomStore';
 import { useAuthStore } from '../store/authStore';
@@ -223,6 +224,7 @@ export function useRoomSocket() {
       s.off('room:player_disconnected', handlePlayerDisconnected);
 
       s.off('user:balance_changed', handleBalanceChanged);
+      unmarkListenersBound();
     };
   }, [user]);
 

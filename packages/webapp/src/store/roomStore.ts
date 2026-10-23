@@ -105,7 +105,7 @@ const initial: Pick<RoomState,
   | 'phase' | 'table' | 'game' | 'gamePhase' | 'mySlotIndex' | 'players'
   | 'currentSpinnerId' | 'currentTargetId' | 'bottleRotation' | 'isSpinning'
   | 'spinEndsAt' | 'card' | 'choiceDeadlineAt' | 'chat' | 'errorMsg'
-  | 'kissCelebration' | 'playerConn'
+  | 'kissCelebration' | 'playerConn' | 'media'
 > = {
   phase: 'none',
   table: null,

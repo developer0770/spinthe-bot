@@ -64,3 +64,6 @@ export function isListenersBound() {
 export function markListenersBound() {
   listenersBound = true;
 }
+export function unmarkListenersBound() {
+  listenersBound = false;
+}

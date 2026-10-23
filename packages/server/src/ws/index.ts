@@ -51,6 +51,52 @@ function wsThrottle(userId: number, key: string, minMs: number): boolean {
   return true;
 }
 
+const MAX_PG_INT = 2_147_483_647;
+
+function parseTableId(value: unknown): number | undefined {
+  const candidate =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\d+$/.test(value.trim())
+        ? Number(value.trim())
+        : NaN;
+  return Number.isSafeInteger(candidate) && candidate > 0 && candidate <= MAX_PG_INT
+    ? candidate
+    : undefined;
+}
+
+/**
+ * Приводит payload room:join к формату joinRoom.
+ * Поддерживает { code }, { tableId }, а также прежние примитивы:
+ * число/числовую строку как tableId и строковый код комнаты.
+ */
+function normalizeJoinTarget(data: unknown): { tableId?: number; code?: string } {
+  if (typeof data === 'number' || typeof data === 'string') {
+    const tableId = parseTableId(data);
+    if (tableId !== undefined) return { tableId };
+    const code = typeof data === 'string' ? data.trim() : '';
+    return code ? { code } : {};
+  }
+
+  if (!data || typeof data !== 'object') return {};
+
+  const { tableId: rawTableId, code: rawCode } = data as { tableId?: unknown; code?: unknown };
+  const target: { tableId?: number; code?: string } = {};
+
+  const tableId = parseTableId(rawTableId);
+  if (tableId !== undefined) target.tableId = tableId;
+
+  const code =
+    typeof rawCode === 'string'
+      ? rawCode.trim()
+      : typeof rawCode === 'number' && Number.isFinite(rawCode)
+        ? String(rawCode)
+        : '';
+  if (code) target.code = code;
+
+  return target;
+}
+
 let io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
 export function initWebSocket(server: HttpServer) {
@@ -202,7 +248,7 @@ export function initWebSocket(server: HttpServer) {
     // ===== ROOM:JOIN =====
     socket.on('room:join', async (data, cb) => {
       try {
-        const result = await joinRoom(userId, Number(data?.tableId ?? data));
+        const result = await joinRoom(userId, normalizeJoinTarget(data));
         await attachToRoom(socket, result.table.id);
         const me = await getUserDTO(userId);
         socket.emit('room:joined', {

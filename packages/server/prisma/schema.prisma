@@ -17,17 +17,17 @@ model User {
   /// Telegram user ID (BigInt потому что в TG id может быть > 2^31)
   telegramId      BigInt    @unique
   /// @username в Telegram (может отсутствовать или меняться)
-  username        String?
+  username        String?   @db.VarChar(64)
   /// Отображаемое имя (first_name + last_name из TG либо введённое вручную)
-  name            String    @default("")
+  name            String    @default("") @db.VarChar(64)
   /// URL фото аватара (либо из Telegram, либо загруженное пользователем)
-  avatarUrl       String?
+  avatarUrl       String?   @db.VarChar(512)
   /// Дата рождения для расчёта возраста
   birthDate       DateTime?
   /// Пол (male/female)
   gender          Gender?
   /// Язык интерфейса (из Telegram)
-  languageCode    String    @default("ru")
+  languageCode    String    @default("ru") @db.VarChar(8)
   isPremium       Boolean   @default(false)
   /// VIP-статус
   isVip           Boolean   @default(false)
@@ -52,8 +52,8 @@ model User {
   isBanned        Boolean   @default(false)
   banReason       String?
   /// Активный скин бутылочки
-  activeBottleId  String    @default("classic_green")
-  activeFrameId   String?
+  activeBottleId  String    @default("classic_green") @db.VarChar(32)
+  activeFrameId   String?   @db.VarChar(32)
   tutorialDone    Boolean   @default(false)
   soundEnabled    Boolean   @default(true)
   musicEnabled    Boolean   @default(true)
@@ -213,7 +213,7 @@ model TablePlayer {
   userId    Int
   slotIndex Int
   /// active | left | kicked | disconnected
-  status    String   @default("active")
+  status    String   @default("active") @db.VarChar(16)
   joinedAt  DateTime @default(now())
   leftAt    DateTime?
 
@@ -228,14 +228,14 @@ model TablePlayer {
 // ====================== GAMES ======================
 /// Конкретная игровая сессия (5 шагов/раундов)
 model Game {
-  id                String    @id @default(uuid())
+  id                String    @id @default(uuid()) @db.Uuid
   tableId           Int
   currentStep       Int       @default(0)
   totalSteps        Int       @default(5)
   currentSpinnerId  Int?
   currentTargetId   Int?
   /// waiting | spinning | choosing | chatting | finished
-  status            String    @default("waiting")
+  status            String    @default("waiting") @db.VarChar(16)
   isTutorial        Boolean   @default(false)
   startedAt         DateTime?
   finishedAt        DateTime?
@@ -253,12 +253,12 @@ model Game {
 /// Один бросок (вращение) внутри игры
 model Spin {
   id          Int       @id @default(autoincrement())
-  gameId      String
+  gameId      String    @db.Uuid
   step        Int
   spinnerId   Int
   targetId    Int
   /// kiss | reject | null (ещё не выбрал)
-  choice      String?
+  choice      String?   @db.VarChar(8)
   /// Конечный угол поворота бутылочки в градусах
   rotationDeg Float
   createdAt   DateTime  @default(now())
@@ -274,11 +274,11 @@ model Spin {
 model Message {
   id          Int       @id @default(autoincrement())
   tableId     Int
-  gameId      String?
+  gameId      String?   @db.Uuid
   senderId    Int?
   text        String
   /// user | system | courtship | gift | event
-  type        String    @default("user")
+  type        String    @default("user") @db.VarChar(16)
   isLocked    Boolean   @default(false)
   createdAt   DateTime  @default(now())
 
@@ -291,12 +291,12 @@ model Message {
 
 // ====================== GIFTS ======================
 model GiftCatalog {
-  id           String         @id   // teddy_bear, cocktail, rose...
-  name         String
-  emoji        String
+  id           String         @id @db.VarChar(32)   // teddy_bear, cocktail, rose...
+  name         String         @db.VarChar(64)
+  emoji        String         @db.VarChar(16)
   priceHearts  Int
   isEvent      Boolean        @default(false)
-  eventId      String?
+  eventId      String?        @db.VarChar(32)
   sortOrder    Int            @default(0)
   isActive     Boolean        @default(true)
 
@@ -305,11 +305,11 @@ model GiftCatalog {
 
 model GiftInstance {
   id           Int        @id @default(autoincrement())
-  giftId       String
+  giftId       String     @db.VarChar(32)
   fromUserId   Int
   toUserId     Int
   tableId      Int?
-  gameId       String?
+  gameId       String?    @db.Uuid
   pricePaid    Int
   createdAt    DateTime   @default(now())
 
@@ -335,11 +335,11 @@ model Courtship {
 
 // ====================== CUSTOMIZATION ======================
 model BottleCatalog {
-  id           String   @id   // classic_green, whiskey, cola...
-  name         String
-  imageUrl     String
+  id           String   @id @db.VarChar(32)   // classic_green, whiskey, cola...
+  name         String   @db.VarChar(64)
+  imageUrl     String   @db.VarChar(256)
   priceHearts  Int?         // null = дефолтная/бесплатная
-  eventId      String?
+  eventId      String?  @db.VarChar(32)
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
 
@@ -348,7 +348,7 @@ model BottleCatalog {
 
 model UserBottle {
   userId       Int
-  bottleId     String
+  bottleId     String   @db.VarChar(32)
   acquiredAt   DateTime @default(now())
 
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -358,9 +358,9 @@ model UserBottle {
 }
 
 model FrameCatalog {
-  id           String   @id   // gothic, cards, moon...
-  name         String
-  imageUrl     String
+  id           String   @id @db.VarChar(32)   // gothic, cards, moon...
+  name         String   @db.VarChar(64)
+  imageUrl     String   @db.VarChar(256)
   priceHearts  Int?
   locked       Boolean  @default(false)
   sortOrder    Int      @default(0)
@@ -371,7 +371,7 @@ model FrameCatalog {
 
 model UserFrame {
   userId       Int
-  frameId      String
+  frameId      String   @db.VarChar(32)
   acquiredAt   DateTime @default(now())
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -382,12 +382,12 @@ model UserFrame {
 
 // ====================== BOOSTERS ======================
 model BoosterCatalog {
-  id           String   @id   // fire_kiss, clap, star_x2, kiss_up
-  name         String
+  id           String   @id @db.VarChar(32)   // fire_kiss, clap, star_x2, kiss_up
+  name         String   @db.VarChar(64)
   description  String
   /// choice | league
-  category     String
-  imageUrl     String
+  category     String   @db.VarChar(16)
+  imageUrl     String   @db.VarChar(256)
   priceHearts  Int?
   sortOrder    Int      @default(0)
 
@@ -396,7 +396,7 @@ model BoosterCatalog {
 
 model UserBooster {
   userId       Int
-  boosterId    String
+  boosterId    String   @db.VarChar(32)
   quantity     Int      @default(0)
 
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -408,7 +408,7 @@ model UserBooster {
 model ActiveBooster {
   id          Int      @id @default(autoincrement())
   userId      Int
-  boosterId   String
+  boosterId   String   @db.VarChar(32)
   activatedAt DateTime @default(now())
   expiresAt   DateTime?
 
@@ -417,10 +417,10 @@ model ActiveBooster {
 
 // ====================== ACHIEVEMENTS ======================
 model AchievementCatalog {
-  id           String   @id   // alien, ship, guitar...
-  name         String
+  id           String   @id @db.VarChar(32)   // alien, ship, guitar...
+  name         String   @db.VarChar(64)
   description  String
-  imageUrl     String
+  imageUrl     String   @db.VarChar(256)
   starsTotal   Int      @default(5)
   requirement  Json?
   sortOrder    Int      @default(0)
@@ -430,7 +430,7 @@ model AchievementCatalog {
 
 model UserAchievement {
   userId        Int
-  achievementId String
+  achievementId String   @db.VarChar(32)
   starsEarned   Int      @default(0)
   completedAt   DateTime?
 
@@ -442,10 +442,10 @@ model UserAchievement {
 
 // ====================== EVENTS ======================
 model Event {
-  id           String       @id   // bbq_season, football, kiss_day...
-  title        String
+  id           String       @id @db.VarChar(32)   // bbq_season, football, kiss_day...
+  title        String       @db.VarChar(128)
   description  String
-  subtitle     String?
+  subtitle     String?      @db.VarChar(128)
   startsAt     DateTime?
   endsAt       DateTime?
   isActive     Boolean      @default(true)
@@ -456,20 +456,20 @@ model Event {
 
 model EventReward {
   id           Int      @id @default(autoincrement())
-  eventId      String
+  eventId      String   @db.VarChar(32)
   /// gift | bottle | hearts | frame
-  rewardType   String
-  rewardId     String?
+  rewardType   String   @db.VarChar(16)
+  rewardId     String?  @db.VarChar(32)
   rewardAmount Int?
-  imageUrl     String?
-  name         String
+  imageUrl     String?  @db.VarChar(256)
+  name         String   @db.VarChar(64)
 
   event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model UserEventClaim {
   userId       Int
-  eventId      String
+  eventId      String   @db.VarChar(32)
   claimedAt    DateTime @default(now())
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -482,14 +482,14 @@ model UserEventClaim {
 model Payment {
   id                  Int       @id @default(autoincrement())
   userId              Int
-  telegramChargeId    String?   @unique
+  telegramChargeId    String?   @unique @db.VarChar(128)
   starsAmount         Int
   heartsAmount        Int
   bonusHearts         Int       @default(0)
   /// hearts_pack | vip
-  productType         String    @default("hearts_pack")
+  productType         String    @default("hearts_pack") @db.VarChar(32)
   /// pending | completed | failed | refunded
-  status              String    @default("pending")
+  status              String    @default("pending") @db.VarChar(16)
   createdAt           DateTime  @default(now())
   completedAt         DateTime?
 
@@ -516,9 +516,9 @@ model Referral {
 model RatingSnapshot {
   id        Int       @id @default(autoincrement())
   /// kisses | music | hearts | couples | smile
-  category  String
+  category  String    @db.VarChar(16)
   /// day | week | month | all_time
-  period    String
+  period    String    @db.VarChar(16)
   userId    Int
   score     BigInt    @default(0)
   rank      Int?
